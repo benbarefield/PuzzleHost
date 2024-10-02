@@ -17,7 +17,8 @@ node_modules
 /out/
 
 # production
-/build
+**/build
+**/dist
 
 # misc
 .DS_Store
@@ -28,8 +29,8 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# local env files
-.env*.local
+# env files
+.env*
 
 # vercel
 .vercel

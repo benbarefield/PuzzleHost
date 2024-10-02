@@ -1,15 +1,31 @@
+import 'dotenv/config';
 import express from "express";
-import puzzleEndpoint from './endpoints/puzzle';
+import puzzle from './endpoints/puzzle';
+import userPuzzles from "./endpoints/userPuzzles";
+import sessionStarter from "./data/sessionStarter";
 
 const port = 8888;
 const app = express();
 
-app.use(express.json());
+(async function() {
+  app.use(express.json());
+  app.use(express.urlencoded({extended: false}));
+  // app.use(authenticator);
 
-puzzleEndpoint(app);
+  try {
+    await sessionStarter(app);
+  }
+  catch(e) {
+    console.log("error connecting to database:", e);
+    return;
+  }
 
-app.listen(port, () => {
-  console.log(`Server started on port: ${port}
+  app.all("puzzle/:id?", puzzle);
+  app.all("userPuzzles", userPuzzles);
+
+  app.listen(port, () => {
+    console.log(`Server started on port: ${port}
 ctrl+c to quit
 `);
-});
+  });
+})();
