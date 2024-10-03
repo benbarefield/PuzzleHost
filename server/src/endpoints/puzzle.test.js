@@ -12,7 +12,7 @@ describe("puzzle endpoint", () => {
   let postgresContainer, pg, expressApp;
   const userId = {id: "123344567"};
 
-  beforeAll(async () => {
+  beforeEach(async () => {
     postgresContainer = await new PostgreSqlContainer().start();
     const connectionUri = postgresContainer.getConnectionUri();
 
@@ -24,21 +24,29 @@ describe("puzzle endpoint", () => {
     await pg.query(createPuzzleTable);
   });
 
-  afterAll(async () => {
+  afterEach(async () => {
     await pg.end();
     await postgresContainer.stop();
-  })
+  });
+
+  describe('unsupported endpoints', () => {
+    test('should send status 501', (done) => {
+      request(expressApp)
+        .merge('/api/puzzle')
+        .expect(501, done);
+    });
+  });
 
   describe("when a puzzle has been successfully created", () => {
     test('the response is a 200', (done) => {
       request(expressApp)
-        .post("/puzzle")
+        .post("/api/puzzle")
         .send('name=my+first+puzzle')
         .expect(200, done);
     });
     test('the response includes an id for the puzzle', async () => {
       const response = await request(expressApp)
-        .post("/puzzle")
+        .post("/api/puzzle")
         .send('name=my+first+puzzle');
 
       expect(response.text).toBeTruthy();
@@ -50,12 +58,12 @@ describe("puzzle endpoint", () => {
       const puzzleName = "my first puzzle";
 
       const createResponse = await request(expressApp)
-        .post("/puzzle")
+        .post("/api/puzzle")
         .send(`name=${puzzleName.replace(' ', '+')}`)
         .set('Accept', 'application/json');
 
       const getResponse = await request(expressApp)
-        .get(`/puzzle/${createResponse.text}`)
+        .get(`/api/puzzle/${createResponse.text}`)
         .set('Accept', 'application/json');
 
       const data = JSON.parse(getResponse.text);

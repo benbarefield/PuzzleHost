@@ -30,23 +30,31 @@ describe("user puzzles endpoint", () => {
     await postgresContainer.stop();
   });
 
+  describe('unsupported endpoints', () => {
+    test('should send status 501', (done) => {
+      request(expressApp)
+        .merge('/api/userPuzzles')
+        .expect(501, done);
+    });
+  });
+
   describe("after creating puzzles", () => {
     test("they can be retrieved with for the logged in user", async () => {
       const puzzle1 = "my first puzzle";
       const puzzle2 = "another puzzle";
 
       const puzzle1Id = (await request(expressApp)
-        .post("/puzzle")
+        .post("/api/puzzle")
         .send(`name=${puzzle1.replace(' ', '+')}`)
         .set('Accept', 'application/json')).text;
 
       const puzzle2Id = (await request(expressApp)
-        .post("/puzzle")
+        .post("/api/puzzle")
         .send(`name=${puzzle2.replace(' ', '+')}`)
         .set('Accept', 'application/json')).text;
 
       const getResponse = await request(expressApp)
-        .get(`/userPuzzles`)
+        .get(`/api/userPuzzles`)
         .set('Accept', 'application/json');
 
       const data = JSON.parse(getResponse.text);
@@ -61,19 +69,19 @@ describe("user puzzles endpoint", () => {
       const puzzle2 = "another puzzle";
 
       await request(expressApp)
-        .post("/puzzle")
+        .post("/api/puzzle")
         .send(`name=${puzzle1.replace(' ', '+')}`)
         .set('Accept', 'application/json');
 
       userId.id = "52562345235";
       await request(expressApp)
-        .post("/puzzle")
+        .post("/api/puzzle")
         .send(`name=${puzzle2.replace(' ', '+')}`)
         .set('Accept', 'application/json');
 
       userId.id = user1;
       const getResponse = await request(expressApp)
-        .get(`/userPuzzles`)
+        .get(`/api/userPuzzles`)
         .set('Accept', 'application/json');
 
       const data = JSON.parse(getResponse.text);
