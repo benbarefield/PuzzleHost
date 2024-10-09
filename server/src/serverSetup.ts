@@ -2,6 +2,7 @@ import {Application, json, urlencoded, RequestHandler} from 'express';
 import puzzle from "./endpoints/puzzle";
 import userPuzzles from "./endpoints/userPuzzles";
 import puzzleAnswer from "./endpoints/puzzleAnswer";
+import queryPuzzle from "./endpoints/queryPuzzle";
 
 export default function setupServer(app : Application, authMiddleware: RequestHandler) {
   app.use(authMiddleware);
@@ -11,4 +12,5 @@ export default function setupServer(app : Application, authMiddleware: RequestHa
   app.all("/api/puzzle/:id?", puzzle);
   app.all("/api/userPuzzles", userPuzzles);
   app.all("/api/puzzleAnswer/:id?", puzzleAnswer);
+  app.all("/api/queryPuzzle/:id/*", queryPuzzle);
 }

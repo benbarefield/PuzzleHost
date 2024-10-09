@@ -8,8 +8,7 @@ async function postPuzzle( req: Request, res: Response): Promise<void> {
   const currentUser = req.authenticatedUser;
   const createdId = await createPuzzle(dataAccess, puzzleName, currentUser);
 
-  res.status(200);
-  res.send(createdId);
+  res.status(201).send(createdId);
 }
 
 async function getPuzzle(req: Request, res: Response): Promise<void> {

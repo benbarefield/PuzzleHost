@@ -25,3 +25,16 @@ export async function getPuzzleAnswerById(pg: Pool, id: number) : Promise<puzzle
     answerIndex: result.rows[0].answer_index,
   };
 }
+
+export async function getAnswersForPuzzle(pg: Pool, puzzleId: number) : Promise<puzzleAnswer[]> {
+  const result = await pg.query('SELECT value, answer_index from puzzle_answers WHERE puzzle=$1', [puzzleId]);
+
+  // if(!result.rows.length) { return []; }
+
+  return result.rows.map(r => ({
+    id: -1,
+    value: r.value,
+    answerIndex: r.answer_index,
+    puzzle: puzzleId
+  }));
+}

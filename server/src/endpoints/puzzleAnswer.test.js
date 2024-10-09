@@ -41,7 +41,7 @@ describe('puzzle answer endpoint', () => {
   });
 
   describe("creating a puzzle answer", () => {
-    test('responds with a 200 when successful', async () => {
+    test('responds with a 201 when successful', async () => {
       const puzzleId = (await request(expressApp)
         .post("/api/puzzle")
         .send('name=my+first+puzzle')).text;
@@ -50,7 +50,7 @@ describe('puzzle answer endpoint', () => {
         .post('/api/puzzleAnswer')
         .send(`puzzle=${puzzleId}&value=5&answerIndex=0`);
 
-      expect(response.status).toEqual(200);
+      expect(response.status).toEqual(201);
     });
 
     test('response with 404 when the puzzle does not exist', (done) => {

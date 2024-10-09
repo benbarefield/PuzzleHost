@@ -38,11 +38,11 @@ describe("puzzle endpoint", () => {
   });
 
   describe("when a puzzle has been successfully created", () => {
-    test('the response is a 200', (done) => {
+    test('the response is a 201', (done) => {
       request(expressApp)
         .post("/api/puzzle")
         .send('name=my+first+puzzle')
-        .expect(200, done);
+        .expect(201, done);
     });
     test('the response includes an id for the puzzle', async () => {
       const response = await request(expressApp)

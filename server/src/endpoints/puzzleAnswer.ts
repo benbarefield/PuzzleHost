@@ -27,7 +27,7 @@ async function postPuzzleAnswer(req: Request, res: Response) : Promise<void> {
 
   const id = await createPuzzleAnswer(dataAccess, puzzle, value, +answerIndex);
 
-  res.status(200).send(id);
+  res.status(201).send(id);
 }
 
 async function getPuzzleAnswer(req: Request, res: Response) : Promise<void> {
