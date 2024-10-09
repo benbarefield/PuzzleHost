@@ -3,7 +3,10 @@ import {getAnswersForPuzzle} from "../data/puzzleAnswerData";
 import {DB_CLIENT} from "../data/sessionStarter";
 
 export default async function(req: Request, res: Response): Promise<void> {
-  if(req.method !== "GET") {}
+  if(req.method !== "GET") {
+    res.status(501).send();
+    return;
+  }
 
   const dataAccess = req.app.get(DB_CLIENT);
   const puzzleId = +req.params.id;

@@ -35,7 +35,13 @@ describe('querying a puzzle', () => {
     await postgresContainer.stop();
   });
 
-  // todo: 501
+  describe('unsupported endpoint methods', () => {
+    test('the response should be a 501', (done) => {
+      request(expressApp)
+        .post(`/api/queryPuzzle/123154/123123`)
+        .expect(501, done);
+    });
+  });
 
   describe('when a puzzle exists with answers', () => {
     test('the response is correct when the provided answer is correct', async() => {
@@ -60,7 +66,6 @@ describe('querying a puzzle', () => {
       expect(response.status).toBe(200);
       expect(response.text).toBe("Correct");
     });
-    //{ '0': '5/8/10', id: '1' }
 
     test('the response is incorrect when teh provided answer is not correct', async () => {
       const puzzleId = (await request(expressApp)
