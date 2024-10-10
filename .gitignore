@@ -1,7 +1,14 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-#ide
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
 .idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
 
 # dependencies
 node_modules
@@ -11,6 +18,8 @@ node_modules
 
 # testing
 /coverage
+/cypress/videos/
+/cypress/screenshots/
 
 # next.js
 /.next/
@@ -19,15 +28,22 @@ node_modules
 # production
 **/build
 **/dist
+dist-ssr
 
 # misc
 .DS_Store
 *.pem
+*.local
 
-# debug
+# debug and logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+logs
+*.log
+pnpm-debug.log*
+lerna-debug.log*
+coverage
 
 # env files
 .env*
