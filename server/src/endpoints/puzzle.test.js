@@ -41,13 +41,16 @@ describe("puzzle endpoint", () => {
     test('the response is a 201', (done) => {
       request(expressApp)
         .post("/api/puzzle")
-        .send('name=my+first+puzzle')
+        // .send('name=my+first+puzzle')
+        .set("Content-Type", "application/json")
+        .send(JSON.stringify({name: "my first puzzle" }))
         .expect(201, done);
     });
     test('the response includes an id for the puzzle', async () => {
       const response = await request(expressApp)
         .post("/api/puzzle")
-        .send('name=my+first+puzzle');
+        .set("Content-Type", "application/json")
+        .send(JSON.stringify({name: "my first puzzle" }));
 
       expect(response.text).toBeTruthy();
     });
@@ -59,12 +62,11 @@ describe("puzzle endpoint", () => {
 
       const createResponse = await request(expressApp)
         .post("/api/puzzle")
-        .send(`name=${puzzleName.replace(' ', '+')}`)
-        .set('Accept', 'application/json');
+        .set("Content-Type", "application/json")
+        .send(JSON.stringify({name: puzzleName }));
 
       const getResponse = await request(expressApp)
-        .get(`/api/puzzle/${createResponse.text}`)
-        .set('Accept', 'application/json');
+        .get(`/api/puzzle/${createResponse.text}`);
 
       const data = JSON.parse(getResponse.text);
 

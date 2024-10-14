@@ -47,7 +47,8 @@ describe('querying a puzzle', () => {
     test('the response is correct when the provided answer is correct', async() => {
       const puzzleId = (await request(expressApp)
         .post("/api/puzzle")
-        .send('name=my+first+puzzle')).text;
+        .set("Content-Type", "application/json")
+        .send(JSON.stringify({name: "my first puzzle" }))).text;
 
       const value1 = "5", value2 = "8", value3 = "10";
       await request(expressApp)
@@ -70,7 +71,8 @@ describe('querying a puzzle', () => {
     test('the response is incorrect when teh provided answer is not correct', async () => {
       const puzzleId = (await request(expressApp)
         .post("/api/puzzle")
-        .send('name=my+first+puzzle')).text;
+        .set("Content-Type", "application/json")
+        .send(JSON.stringify({name: "my first puzzle" }))).text;
 
       const value1 = "5", value2 = "8", value3 = "10";
       await request(expressApp)
@@ -93,7 +95,8 @@ describe('querying a puzzle', () => {
     test("too many answers results in an incorrect response", async () => {
       const puzzleId = (await request(expressApp)
         .post("/api/puzzle")
-        .send('name=my+first+puzzle')).text;
+        .set("Content-Type", "application/json")
+        .send(JSON.stringify({name: "my first puzzle" }))).text;
 
       const value1 = "5", value2 = "8", value3 = "10";
       await request(expressApp)
@@ -116,7 +119,8 @@ describe('querying a puzzle', () => {
     test('too few answers results in an incorrect response', async () => {
       const puzzleId = (await request(expressApp)
         .post("/api/puzzle")
-        .send('name=my+first+puzzle')).text;
+        .set("Content-Type", "application/json")
+        .send(JSON.stringify({name: "my first puzzle" }))).text;
 
       const value1 = "5", value2 = "8", value3 = "10";
       await request(expressApp)
@@ -139,7 +143,8 @@ describe('querying a puzzle', () => {
     test('response is a 404 when there are no answers setup for the puzzle', async () => {
       const puzzleId = (await request(expressApp)
         .post("/api/puzzle")
-        .send('name=my+first+puzzle')).text;
+        .set("Content-Type", "application/json")
+        .send(JSON.stringify({name: "my first puzzle" }))).text;
 
       const response = await request(expressApp)
         .get(`/api/queryPuzzle/${puzzleId}/4654`);

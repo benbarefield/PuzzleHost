@@ -44,7 +44,8 @@ describe('puzzle answer endpoint', () => {
     test('responds with a 201 when successful', async () => {
       const puzzleId = (await request(expressApp)
         .post("/api/puzzle")
-        .send('name=my+first+puzzle')).text;
+        .set("Content-Type", "application/json")
+        .send(JSON.stringify({name: "my first puzzle" }))).text;
 
       const response = await request(expressApp)
         .post('/api/puzzleAnswer')
@@ -63,7 +64,8 @@ describe('puzzle answer endpoint', () => {
     test('responds with 401 when the user does not own the puzzle', async () => {
       const puzzleId = (await request(expressApp)
         .post("/api/puzzle")
-        .send('name=my+first+puzzle')).text;
+        .set("Content-Type", "application/json")
+        .send(JSON.stringify({name: "my first puzzle" }))).text;
 
       userHelper.id = "234524";
       const response = await request(expressApp)
@@ -88,7 +90,8 @@ describe('puzzle answer endpoint', () => {
     test('the answer data is returned', async () => {
       const puzzleId = (await request(expressApp)
         .post("/api/puzzle")
-        .send('name=my+first+puzzle')).text;
+        .set("Content-Type", "application/json")
+        .send(JSON.stringify({name: "my first puzzle" }))).text;
 
       const value = "5";
       const answerIndex = 3;
@@ -121,7 +124,8 @@ describe('puzzle answer endpoint', () => {
     test('response with 401 when the user does not own the puzzle for the answer', async () => {
       const puzzleId = (await request(expressApp)
         .post("/api/puzzle")
-        .send('name=my+first+puzzle')).text;
+        .set("Content-Type", "application/json")
+        .send(JSON.stringify({name: "my first puzzle" }))).text;
 
       const answerId = (await request(expressApp)
         .post('/api/puzzleAnswer')
