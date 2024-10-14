@@ -2,7 +2,7 @@ import {Request, Response} from 'express';
 import {DB_CLIENT} from "../data/sessionStarter";
 import {createPuzzle, getPuzzleById} from "../data/puzzleData";
 
-async function postPuzzle( req: Request, res: Response): Promise<void> {
+async function postPuzzle(req: Request, res: Response): Promise<void> {
   const dataAccess = req.app.get(DB_CLIENT);
   const puzzleName = req.body.name;
   const currentUser = req.authenticatedUser;
@@ -21,6 +21,10 @@ async function getPuzzle(req: Request, res: Response): Promise<void> {
 }
 
 export default async function(req: Request, res: Response) : Promise<void> {
+  if(req.method === "OPTIONS") {
+    res.status(204).send();
+    return;
+  }
   if(req.method === 'POST') {
     return postPuzzle(req, res);
   }
