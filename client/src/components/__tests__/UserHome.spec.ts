@@ -1,91 +1,18 @@
-import {afterAll, beforeEach, describe, expect, it, vi} from 'vitest'
+import {beforeEach, describe, expect, it, vi} from 'vitest'
 import {flushPromises, mount, VueWrapper} from "@vue/test-utils";
 import {createTestingPinia} from "@pinia/testing";
 import {type Puzzle} from "../../stores/puzzles";
 import UserHome from "@/views/UserHome.vue";
 import {routeConfiguration} from "@/router";
-import {nextTick} from "vue";
 import {type Router, createRouter, createWebHistory} from "vue-router";
+import doFetchMocking, {type FetchMockFunction} from "./fetchMocker";
 
 describe("UserHome view", () => {
-  let wrapper: VueWrapper, router: Router;
+  let wrapper: VueWrapper, router: Router, fetchMock: FetchMockFunction;
   const puzzleData: Puzzle[] = [
     { name: "First", id: "1" },
     { name: "Two", id: "12" },
   ];
-
-  interface PendingFetch {
-    url: string,
-    resolve: (r: Response) => void
-    reject: (r: Response) => void
-    options: RequestInit,
-    completed: boolean,
-  }
-
-  interface MockResponseInit {
-    body: BodyInit,
-    options: ResponseInit,
-  }
-  interface FetchMockFunction extends Function {
-    pending: PendingFetch[],
-    resolveFetch: (urlPattern: RegExp, r: MockResponseInit) => void
-    getRequest: (urlPattern: RegExp, index?: number) => Request;
-  }
-
-  let originalFetch = global.fetch, fetchMock: FetchMockFunction;
-
-  function doFetchMocking() : FetchMockFunction {
-    const mock: FetchMockFunction = function(this: FetchMockFunction, resource: string | URL | Request, options : RequestInit | undefined) {
-      // const { promise, resolve, reject } = Promise.withResolvers();
-      let resolve : (r: Response) => void = r => {}, reject : (r: Response) => void = r => {};
-      const promise: Promise<Response> = new Promise((v, j) => {
-        resolve = v;
-        reject = j;
-      });
-
-      this.pending.push({
-        url: resource instanceof Request ? resource.url : resource.toString(),
-        resolve,
-        reject,
-        completed: false,
-        options: options || {},
-      });
-
-      return promise;
-    };
-
-    mock.pending = [];
-
-    const resolveFetch = function(this: FetchMockFunction, urlPattern: RegExp, response: MockResponseInit): void {
-      const toSend = new Response(response.body, response.options);
-      for(let i = 0; i < this.pending.length; i++) {
-        const pending = this.pending[i];
-        if(pending.completed || !urlPattern.test(pending.url)) { continue; }
-
-        pending.completed = true;
-        pending.resolve(toSend);
-        return;
-      }
-      // no match error?
-    }
-    mock.resolveFetch = resolveFetch.bind(mock);
-
-    const getRequest = function(this: FetchMockFunction, urlPattern: RegExp, index: number = 0): Request {
-      let count = 0;
-      for(let i = 0; i < this.pending.length; i++) {
-        const pending = this.pending[i];
-        if(!urlPattern.test(pending.url)) { continue; }
-        if(index != count++) { continue; }
-
-        return new Request(pending.url, pending.options);
-      }
-      throw new Error(`No matching request for ${urlPattern} at index ${index}`);
-    }
-    mock.getRequest = getRequest.bind(mock);
-
-    global.fetch = mock.bind(mock);
-    return mock;
-  }
 
   beforeEach(async() => {
     fetchMock = doFetchMocking();
@@ -109,11 +36,6 @@ describe("UserHome view", () => {
       }
     });
   });
-
-  afterAll(() => {
-    // should this should include a teardown of the mock?
-    global.fetch = originalFetch;
-  })
 
   describe("when there are no puzzles in the store", async () => {
     it('should show a loading element', () => {
