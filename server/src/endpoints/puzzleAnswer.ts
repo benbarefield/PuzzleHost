@@ -1,7 +1,7 @@
 import { Request, Response} from "express";
 import {DB_CLIENT} from "../data/sessionStarter";
-import {getPuzzleById} from "../data/puzzleData";
-import {createPuzzleAnswer, getPuzzleAnswerById} from "../data/puzzleAnswerData";
+import {getPuzzleById, verifyPuzzleOwnership} from "../data/puzzleData";
+import {createPuzzleAnswer, getAnswersForPuzzle, getPuzzleAnswerById} from "../data/puzzleAnswerData";
 
 async function postPuzzleAnswer(req: Request, res: Response) : Promise<void> {
   const currentUser = req.authenticatedUser;
@@ -37,27 +37,55 @@ async function getPuzzleAnswer(req: Request, res: Response) : Promise<void> {
     return;
   }
   const dataAccess = req.app.get(DB_CLIENT);
-  const id = req.params.id;
-
-  const answer = await getPuzzleAnswerById(dataAccess, +id);
-  if(!answer) {
-    res.send();
+  let puzzleId = +req.query.puzzle;
+  const answerId = req.params.id;
+  if((puzzleId || puzzleId === 0) && answerId) {
+    res.status(414).send("Unsupported to get a puzzle answer by puzzle id and answer id");
     return;
   }
-  const puzzle = await getPuzzleById(dataAccess, answer.puzzle);
-  if(puzzle.owner !== currentUser) {
+
+  // invalid puzzle and answer id?
+
+  let dataToSend: string;
+  if(!puzzleId && puzzleId !== 0) { // support for id = 0?
+    const answer = await getPuzzleAnswerById(dataAccess, +answerId);
+    if(!answer) {
+      // should this actually 404?
+      res.send();
+      return;
+    }
+
+    dataToSend = JSON.stringify({
+      value: answer.value,
+      puzzle: answer.puzzle,
+      answerIndex: answer.answerIndex,
+    });
+    puzzleId = answer.puzzle;
+  }
+
+  const ownershipVerified = await verifyPuzzleOwnership(dataAccess, puzzleId, currentUser);
+  if(!ownershipVerified) {
     res.status(401).send();
     return;
   }
 
-  res.send(JSON.stringify({
-    value: answer.value,
-    puzzle: answer.puzzle,
-    answerIndex: answer.answerIndex,
-  }));
+  if(!dataToSend) {
+    const answers = await getAnswersForPuzzle(dataAccess, +puzzleId);
+
+    dataToSend = JSON.stringify(answers.map(p => ({
+      value: p.value,
+      puzzle: p.puzzle,
+      answerIndex: p.answerIndex,
+    })));
+  }
+
+  res.set('Content-Type', 'application/json');
+  res.send(dataToSend);
 }
 
+
 export default async function puzzleAnswer(req: Request, res: Response): Promise<void> {
+  if(req.method === "OPTIONS") {}
   if(req.method === "POST") {
     return postPuzzleAnswer(req, res);
   }

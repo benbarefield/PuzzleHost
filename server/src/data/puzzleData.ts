@@ -34,3 +34,9 @@ export async function getPuzzlesForUser(pg: Pool, userId: string): Promise<puzzl
     owner: userId,
   }));
 }
+
+export async function verifyPuzzleOwnership(pg: Pool, puzzleId: number, userId: string): Promise<boolean> {
+  const puzzle = await getPuzzleById(pg, puzzleId);
+
+  return puzzle && puzzle.owner === userId;
+}

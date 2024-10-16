@@ -100,9 +100,9 @@ describe('puzzle answer endpoint', () => {
         .send(`puzzle=${puzzleId}&value=${value}&answerIndex=${answerIndex}`)).text;
 
       const response = await request(expressApp)
-        .get(`/api/puzzleAnswer/${answerId}`)
-        .set('Accept', 'application/json');
+        .get(`/api/puzzleAnswer/${answerId}`);
 
+      expect(response.headers['content-type']).toContain('application/json');
       const data = JSON.parse(response.text);
       expect(response.status).toEqual(200);
       expect(data).toEqual({
@@ -117,7 +117,6 @@ describe('puzzle answer endpoint', () => {
 
       request(expressApp)
         .get(`/api/puzzleAnswer/123412512`)
-        .set('Accept', 'application/json')
         .expect(403, done);
     });
 
@@ -133,18 +132,101 @@ describe('puzzle answer endpoint', () => {
 
       userHelper.id = "98765";
       const response = await request(expressApp)
-        .get(`/api/puzzleAnswer/${answerId}`)
-        .set('Accept', 'application/json');
+        .get(`/api/puzzleAnswer/${answerId}`);
 
       expect(response.status).toBe(401);
     });
 
     test('empty response when there is no puzzle answer', async () => {
       const response = await request(expressApp)
-        .get(`/api/puzzleAnswer/1231541`)
-        .set('Accept', 'application/json');
+        .get(`/api/puzzleAnswer/1231541`);
 
       expect(response.text).toEqual("");
+    });
+  });
+
+  describe('getting the all the answers for a puzzle', () => {
+    test('all the answers are retrieved', async () => {
+      const puzzleId = (await request(expressApp)
+        .post("/api/puzzle")
+        .set("Content-Type", "application/json")
+        .send(JSON.stringify({name: "my first puzzle" }))).text;
+
+      const answer1 = "5", answer2 = "10";
+      await request(expressApp)
+        .post('/api/puzzleAnswer')
+        .send(`puzzle=${puzzleId}&value=${answer1}&answerIndex=0`);
+
+      await request(expressApp)
+        .post('/api/puzzleAnswer')
+        .send(`puzzle=${puzzleId}&value=${answer2}&answerIndex=1`);
+
+      const response = await request(expressApp)
+        .get(`/api/puzzleAnswer/?puzzle=${puzzleId}`);
+
+      expect(response.status).toBe(200);
+      expect(response.headers['content-type']).toContain('application/json');
+      const data = JSON.parse(response.text);
+      expect(data.find(a => a.answerIndex === 0).value).toBe(answer1)
+      expect(data.find(a => a.answerIndex === 1).value).toBe(answer2)
+    });
+
+    test('should respond with a 401 if the puzzle is not owned by the user', async () => {
+      const puzzleId = (await request(expressApp)
+        .post("/api/puzzle")
+        .set("Content-Type", "application/json")
+        .send(JSON.stringify({name: "my first puzzle" }))).text;
+
+      userHelper.id = "98765";
+      const response = await request(expressApp)
+        .get(`/api/puzzleAnswer/?puzzle=${puzzleId}`);
+
+      expect(response.status).toBe(401);
+    });
+
+    test('should respond with 414 if a puzzle answer id is given with a puzzle id', async () => {
+      const puzzleId = (await request(expressApp)
+        .post("/api/puzzle")
+        .set("Content-Type", "application/json")
+        .send(JSON.stringify({name: "my first puzzle" }))).text;
+
+      const answerId = (await request(expressApp)
+        .post('/api/puzzleAnswer')
+        .send(`puzzle=${puzzleId}&value=5&answerIndex=0`)).text;
+
+      const response = await request(expressApp)
+        .get(`/api/puzzleAnswer/${answerId}?puzzle=${puzzleId}`);
+
+      expect(response.status).toBe(414);
+    });
+  });
+
+  describe("creating answers when answers already exist", () => {
+    test('creating an answer in the middle of existing answers updates ordering properly', async () => {
+      const puzzleId = (await request(expressApp)
+        .post("/api/puzzle")
+        .set("Content-Type", "application/json")
+        .send(JSON.stringify({name: "my first puzzle" }))).text;
+
+      const answer1 = "1", answer2 = "2", answer3 = "3";
+      await request(expressApp)
+        .post('/api/puzzleAnswer')
+        .send(`puzzle=${puzzleId}&value=${answer1}&answerIndex=0`);
+
+      await request(expressApp)
+        .post('/api/puzzleAnswer')
+        .send(`puzzle=${puzzleId}&value=${answer3}&answerIndex=1`);
+
+      await request(expressApp)
+        .post('/api/puzzleAnswer')
+        .send(`puzzle=${puzzleId}&value=${answer2}&answerIndex=1`);
+
+      const response = await request(expressApp)
+        .get(`/api/puzzleAnswer/?puzzle=${puzzleId}`);
+      const data = JSON.parse(response.text);
+      expect(data.find(a => a.answerIndex === 0).value).toBe(answer1);
+      expect(data.find(a => a.answerIndex === 1).value).toBe(answer2);
+      expect(data.find(a => a.answerIndex === 2).value).toBe(answer3);
     });
   });
 });

@@ -8,9 +8,25 @@ interface puzzleAnswer {
 }
 
 export async function createPuzzleAnswer(pg: Pool, puzzle: string, value: string, answerIndex: number): Promise<number> {
-  const result = await pg.query('INSERT INTO puzzle_answers (puzzle, value, answer_index) VALUES ($1, $2, $3) RETURNING id', [puzzle, value, answerIndex]);
+  const client = await pg.connect();
 
-  return result.rows[0].id;
+  let newId: number = -1;
+  try {
+    await client.query("BEGIN");
+    await client.query('UPDATE puzzle_answers SET answer_index = answer_index + 1 WHERE answer_index >= $1', [answerIndex]);
+    const result = await client.query('INSERT INTO puzzle_answers (puzzle, value, answer_index) VALUES ($1, $2, $3) RETURNING id', [puzzle, value, answerIndex]);
+    newId = result.rows[0].id
+    await client.query("COMMIT");
+  }
+  catch(e) {
+    await client.query("ROLLBACK");
+    throw e;
+  }
+  finally {
+    client.release();
+  }
+
+  return newId;
 }
 
 export async function getPuzzleAnswerById(pg: Pool, id: number) : Promise<puzzleAnswer> {
