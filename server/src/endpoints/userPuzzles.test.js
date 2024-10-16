@@ -39,50 +39,46 @@ describe("user puzzles endpoint", () => {
   });
 
   describe("after creating puzzles", () => {
-    test("they can be retrieved with for the logged in user", async () => {
+    test("they can be retrieved for the logged in user", async () => {
       const puzzle1 = "my first puzzle";
       const puzzle2 = "another puzzle";
 
       const puzzle1Id = (await request(expressApp)
         .post("/api/puzzle")
-        .send(`name=${puzzle1.replace(' ', '+')}`)
-        .set('Accept', 'application/json')).text;
+        .send(`name=${puzzle1.replace(' ', '+')}`)).text;
 
       const puzzle2Id = (await request(expressApp)
         .post("/api/puzzle")
-        .send(`name=${puzzle2.replace(' ', '+')}`)
-        .set('Accept', 'application/json')).text;
+        .send(`name=${puzzle2.replace(' ', '+')}`)).text;
 
       const getResponse = await request(expressApp)
-        .get(`/api/userPuzzles`)
-        .set('Accept', 'application/json');
+        .get(`/api/userPuzzles`);
+
+      expect(getResponse.headers['content-type']).toContain("application/json");
 
       const data = JSON.parse(getResponse.text);
-
       expect(data).toEqual([
         {name: puzzle1, id: puzzle1Id},
         {name: puzzle2, id: puzzle2Id},
       ]);
     });
+
     test('puzzles from other users are not retrieved', async () => {
       const puzzle1 = "my first puzzle";
       const puzzle2 = "another puzzle";
 
       await request(expressApp)
         .post("/api/puzzle")
-        .send(`name=${puzzle1.replace(' ', '+')}`)
-        .set('Accept', 'application/json');
+        .send(`name=${puzzle1.replace(' ', '+')}`);
 
       userId.id = "52562345235";
       await request(expressApp)
         .post("/api/puzzle")
-        .send(`name=${puzzle2.replace(' ', '+')}`)
-        .set('Accept', 'application/json');
+        .send(`name=${puzzle2.replace(' ', '+')}`);
 
       userId.id = user1;
       const getResponse = await request(expressApp)
-        .get(`/api/userPuzzles`)
-        .set('Accept', 'application/json');
+        .get(`/api/userPuzzles`);
 
       const data = JSON.parse(getResponse.text);
 
