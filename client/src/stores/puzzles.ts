@@ -1,4 +1,4 @@
-import {ref} from "vue";
+import {computed, ref} from "vue";
 import {defineStore} from "pinia";
 
 export interface Puzzle {
@@ -11,6 +11,11 @@ export interface Puzzle {
 export const usePuzzleStore = defineStore("puzzles", () => {
   const puzzlesStore = ref<Puzzle[]>([]);
   const loaded = ref<boolean>(false);
+
+  const puzzleNameById = computed(() => (puzzleId: string): string => {
+    const puzzle = puzzlesStore.value.find(p => p.id == puzzleId);
+    return puzzle?.name || "";
+  });
 
   function setPuzzles(puzzles: Puzzle[]) {
     puzzlesStore.value = puzzles;
@@ -32,5 +37,10 @@ export const usePuzzleStore = defineStore("puzzles", () => {
     });
   }
 
-  return {puzzles:puzzlesStore, loaded, setPuzzles, addPuzzle, confirmPuzzleWithId};
+  const hasPuzzleData = computed(() => (puzzleId: string) => {
+    const puzzle = puzzlesStore.value.find(p => p.id == puzzleId);
+    return puzzle ? !puzzle.unconfirmed : false;
+  });
+
+  return {puzzles:puzzlesStore, loaded, puzzleNameById, hasPuzzleData, setPuzzles, addPuzzle, confirmPuzzleWithId};
 });

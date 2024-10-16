@@ -1,16 +1,43 @@
 <script lang="ts" setup>
-  const answers = [{value: "A", answerIndex:0}, {value: "B", answerIndex: 2}, {value: "C", answerIndex: 1}]
-  answers.sort((a, b) => a.answerIndex - b.answerIndex);
-  const answerList = Array.from({length: answers.length * 2}, (_, i) => i % 2 === 0 ? answers[i / 2] : null);
+import {usePuzzleStore} from "@/stores/puzzles";
+import {usePuzzleAnswersStore} from "@/stores/puzzleAnswers";
+import {onUpdated} from "vue";
+import {storeToRefs} from "pinia";
+
+const props = defineProps<{
+    id: string
+  }>();
+
+  const puzzleStore = usePuzzleStore();
+  const { hasPuzzleData, puzzleNameById } = storeToRefs(puzzleStore);
+  // const puzzleExists = puzzleStore.hasPuzzleData(props.id);
+  // const puzzleName = puzzleStore.puzzleNameById(props.id);
+
+  const answersStore = usePuzzleAnswersStore();
+  const { sortedPuzzleAnswers } = storeToRefs(answersStore);
+  const answers = sortedPuzzleAnswers.value(props.id);
+
+  if(!hasPuzzleData.value(props.id)) { // this isn't a great "existence" check...
+    (async () => {
+      const response = await fetch(`http://localhost:8888/api/puzzle/${props.id}}`);
+
+      const puzzle = await response.json();
+      puzzleStore.addPuzzle(puzzle);
+      // todo: error (eg. not allowed)
+    })();
+  }
+  // const answerList = Array.from({length: answers.length * 2}, (_, i) => i % 2 === 0 ? answers[i / 2] : null);
 </script>
 
 <template>
-  <section class="container">
-    <h2 class="header">Puzzle Name ({{$route.params.id}})</h2>
-    <ul class="answer-list">
-      <li v-for="answer in answerList" class="answer">
-        <p v-if="answer !== null">{{answer.value}}</p>
-        <button v-if="answer === null">+</button>
+  <div class="loading" v-if="!hasPuzzleData(props.id)" data-test="puzzle-loading">Loading...</div>
+  <section v-if="hasPuzzleData(props.id)" class="container">
+    <h2 class="header" data-test="puzzle-name">{{puzzleNameById(props.id)}}</h2>
+    <div v-if="!answers" class="loading" data-test="answers-loading">Loading...</div>
+    <ul v-if="!!answers" class="answer-list">
+      <li v-for="answer in answers" class="answer">
+        <p>{{answer.value}}</p>
+<!--        <button v-if="answer === null">+</button>-->
       </li>
     </ul>
   </section>

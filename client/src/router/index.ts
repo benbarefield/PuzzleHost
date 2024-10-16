@@ -12,6 +12,7 @@ export const routeConfiguration : RouteRecordRaw[] = [
     path: '/puzzle/:id',
     name: 'puzzle-details',
     component: Puzzle,
+    props: true,
   },
 ];
 

@@ -7,6 +7,7 @@ export interface FetchMockFunction extends Function {
   (resource: string | URL | Request, options : RequestInit | undefined): Promise<Response>
   resolveFetch: (urlPattern: RegExp, r: MockResponseInit) => void
   getRequest: (urlPattern: RegExp, index?: number) => Request;
+  numberOfRequestsTo: (urlPattern: RegExp) => number;
 }
 
 interface PendingFetch {
@@ -49,7 +50,8 @@ export default function doFetchMocking() : FetchMockFunction {
       pending.resolve(toSend);
       return;
     }
-    // no match error?
+
+    throw new Error(`No matching unresolved request for ${urlPattern}`);
   }
   mock.resolveFetch = resolveFetch;
 
@@ -65,6 +67,11 @@ export default function doFetchMocking() : FetchMockFunction {
     throw new Error(`No matching request for ${urlPattern} at index ${index}`);
   }
   mock.getRequest = getRequest;
+
+  const numberOfRequestsTo = function(urlPattern: RegExp): number {
+    return requests.reduce((s, p) => urlPattern.test(p.url) ? s + 1 : s, 0);
+  }
+  mock.numberOfRequestsTo = numberOfRequestsTo;
 
   global.fetch = mock;
   return mock;
