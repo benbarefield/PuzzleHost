@@ -137,8 +137,8 @@ describe("UserHome view", () => {
 
       await flushPromises();
 
-      await wrapper.find('#create-puzzleName').setValue(newPuzzleName);
-      await wrapper.find('dialog .create-puzzle').trigger('submit');
+      await wrapper.find('#createPuzzle-name').setValue(newPuzzleName);
+      await wrapper.find('dialog form').trigger('submit');
     });
 
     // it('should be possible to open the dialog', async () => {

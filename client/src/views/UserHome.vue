@@ -57,29 +57,29 @@
 <template>
   <section class="container">
     <h2 class="header">Your Puzzles</h2>
-    <div v-if="!loaded" class="bordered-container">
+    <div v-if="!loaded" class="borderedContainer">
       <p class="loading">loading...</p>
     </div>
-    <ul v-if="loaded && puzzles.length > 0" class="puzzle-list bordered-container">
+    <ul v-if="loaded && puzzles.length > 0" class="puzzleList borderedContainer">
       <li v-for="puzzle in puzzles" class="puzzle">
         <RouterLink v-if="!puzzle.unconfirmed" :to="`/puzzle/${puzzle.id}`">{{puzzle.name}}</RouterLink>
         <span v-if="puzzle.unconfirmed">{{puzzle.name}} [pending...]</span>
       </li>
       <li>
-        <button class="create-puzzle" @click="openCreateDialog">Create Puzzle</button>
+        <button class="createPuzzle" @click="openCreateDialog">Create Puzzle</button>
       </li>
     </ul>
-    <div v-if="loaded && puzzles.length === 0" class="bordered-container">
+    <div v-if="loaded && puzzles.length === 0" class="borderedContainer">
       <p class="instructions">No puzzles yet! Create a puzzle to get started.</p>
-      <button class="create-puzzle" @click="openCreateDialog">Create Puzzle</button>
+      <button class="createPuzzle" @click="openCreateDialog">Create Puzzle</button>
     </div>
   </section>
-  <dialog class="create-dialog" ref="create-dialog">
+  <dialog class="createDialog" ref="create-dialog">
     <h3>New Puzzle</h3>
     <form @submit.prevent="sendCreatePuzzle">
-      <label for="create-puzzleName">Name:</label>
-      <input type="text" id="create-puzzleName" name="puzzleName" ref="create-name" />
-      <button class="create-puzzle">Create</button>
+      <label for="createPuzzle-name">Name:</label>
+      <input type="text" id="createPuzzle-name" name="puzzleName" ref="create-name" />
+      <button class="createPuzzle">Create</button>
     </form>
   </dialog>
 </template>
@@ -95,7 +95,7 @@
     padding-left: 4px;
   }
 
-  .bordered-container {
+  .borderedContainer {
     border-width: 0 2px 0 2px;
     border-color: var(--color-border);
     border-style: solid;
@@ -103,7 +103,7 @@
     padding: 4px;
   }
 
-  .puzzle-list {
+  .puzzleList {
     list-style-type: none;
   }
 
@@ -117,7 +117,7 @@
     padding: 0 4px;
   }
 
-  .create-puzzle {
+  .createPuzzle {
     display: block;
     width: 100%;
     color: var(--color-interactable);
@@ -135,12 +135,12 @@
     border-color: var(--color-border-hover);
   }
 
-  .create-dialog {
+  .createDialog {
     padding: 50px;
     border-radius: 6px;
     margin: auto;
   }
-  .create-dialog::backdrop {
+  .createDialog::backdrop {
     background-color: rgba(0, 0, 0, 0.3);
   }
 </style>
