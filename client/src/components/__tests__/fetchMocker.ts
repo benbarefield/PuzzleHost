@@ -6,6 +6,8 @@ export interface MockResponseInit {
 export interface FetchMockFunction extends Function {
   (resource: string | URL | Request, options : RequestInit | undefined): Promise<Response>
   resolveFetch: (urlPattern: RegExp, r: MockResponseInit) => void
+  resolveFetchWithJson: (urlPattern: RegExp, data: string) => void
+  resolveFetchWithText: (urlPattern: RegExp, data: string) => void
   getRequest: (urlPattern: RegExp, index?: number) => Request;
   numberOfRequestsTo: (urlPattern: RegExp) => number;
 }
@@ -40,7 +42,7 @@ export default function doFetchMocking() : FetchMockFunction {
     return promise;
   };
 
-  const resolveFetch = function(urlPattern: RegExp, response: MockResponseInit): void {
+  mock.resolveFetch = function(urlPattern: RegExp, response: MockResponseInit): void {
     const toSend = new Response(response.body, response.options);
     for(let i = 0; i < requests.length; i++) {
       const pending = requests[i];
@@ -53,9 +55,32 @@ export default function doFetchMocking() : FetchMockFunction {
 
     throw new Error(`No matching unresolved request for ${urlPattern}`);
   }
-  mock.resolveFetch = resolveFetch;
 
-  const getRequest = function(urlPattern: RegExp, index: number = 0): Request {
+  mock.resolveFetchWithJson = function(urlPattern: RegExp, data: string): void {
+    mock.resolveFetch(urlPattern, {
+      body: data,
+      options: {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      },
+    });
+  }
+
+  mock.resolveFetchWithText = function(urlPattern: RegExp, data: string): void {
+    mock.resolveFetch(urlPattern, {
+      body: data,
+      options: {
+        status: 200,
+        headers: {
+          "Content-Type": "text/plain",
+        },
+      },
+    });
+  }
+
+  mock.getRequest = function(urlPattern: RegExp, index: number = 0): Request {
     let count = 0;
     for(let i = 0; i < requests.length; i++) {
       const pending = requests[i];
@@ -66,12 +91,10 @@ export default function doFetchMocking() : FetchMockFunction {
     }
     throw new Error(`No matching request for ${urlPattern} at index ${index}`);
   }
-  mock.getRequest = getRequest;
 
-  const numberOfRequestsTo = function(urlPattern: RegExp): number {
+  mock.numberOfRequestsTo = function(urlPattern: RegExp): number {
     return requests.reduce((s, p) => urlPattern.test(p.url) ? s + 1 : s, 0);
   }
-  mock.numberOfRequestsTo = numberOfRequestsTo;
 
   global.fetch = mock;
   return mock;
