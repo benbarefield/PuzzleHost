@@ -396,5 +396,35 @@ describe('puzzle answer endpoint', () => {
         .delete(`/api/puzzleAnswer/abcd`)
         .expect(400, done);
     });
+
+    test('it should update the answer indexes', async () => {
+      answerId = (await request(expressApp)
+        .post('/api/puzzleAnswer')
+        .set("Content-Type", "application/json")
+        .send(JSON.stringify({
+          puzzle: puzzleId,
+          value: 11,
+          answerIndex: 1,
+        }))).text;
+
+      (await request(expressApp)
+        .post('/api/puzzleAnswer')
+        .set("Content-Type", "application/json")
+        .send(JSON.stringify({
+          puzzle: puzzleId,
+          value: 12,
+          answerIndex: 2,
+        }))).text;
+
+      await request(expressApp)
+        .delete(`/api/puzzleAnswer/${answerId}`);
+
+      const response = await request(expressApp)
+        .get(`/api/puzzleAnswer/?puzzle=${puzzleId}`);
+
+      const data = JSON.parse(response.text);
+      expect(data.find(a => a.answerIndex === 0).value).toEqual("10");
+      expect(data.find(a => a.answerIndex === 1).value).toEqual("12");
+    });
   });
 });
