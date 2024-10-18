@@ -7,7 +7,7 @@ interface puzzle {
 }
 
 export async function getPuzzleById(pg : Pool, id: number) : Promise<puzzle> {
-  const result = await pg.query("SELECT name, owner FROM puzzles WHERE id = $1", [id]);
+  const result = await pg.query("SELECT name, owner FROM puzzles WHERE id = $1 AND deleted != true", [id]);
 
   if(!result.rows.length) { return null; }
 
@@ -39,4 +39,10 @@ export async function verifyPuzzleOwnership(pg: Pool, puzzleId: number, userId: 
   const puzzle = await getPuzzleById(pg, puzzleId);
 
   return puzzle && puzzle.owner === userId;
+}
+
+export async function markPuzzleAsDeleted(pg: Pool, puzzleId: number): Promise<boolean> {
+  const result = await pg.query("UPDATE puzzles SET deleted = true WHERE id = $1", [puzzleId]);
+
+  return result.rowCount > 0;
 }

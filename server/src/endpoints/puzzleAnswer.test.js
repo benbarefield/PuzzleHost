@@ -191,11 +191,10 @@ describe('puzzle answer endpoint', () => {
       expect(response.status).toBe(401);
     });
 
-    test('empty response when there is no puzzle answer', async () => {
-      const response = await request(expressApp)
-        .get(`/api/puzzleAnswer/1231541`);
-
-      expect(response.text).toEqual("");
+    test('404 response when there is no puzzle answer', (done) => {
+      request(expressApp)
+        .get(`/api/puzzleAnswer/1231541`)
+        .expect(404, done);
     });
   });
 
@@ -325,6 +324,77 @@ describe('puzzle answer endpoint', () => {
       expect(data.find(a => a.answerIndex === 0).value).toBe(answer1);
       expect(data.find(a => a.answerIndex === 1).value).toBe(answer2);
       expect(data.find(a => a.answerIndex === 2).value).toBe(answer3);
+    });
+  });
+
+  describe('deleting an answer', () => {
+    let answerId;
+    let puzzleId;
+    beforeEach(async () => {
+      puzzleId = (await request(expressApp)
+        .post("/api/puzzle")
+        .set("Content-Type", "application/json")
+        .send(JSON.stringify({name: "my first puzzle" }))).text;
+
+      answerId = (await request(expressApp)
+        .post('/api/puzzleAnswer')
+        .set("Content-Type", "application/json")
+        .send(JSON.stringify({
+          puzzle: puzzleId,
+          value: 10,
+          answerIndex: 0,
+        }))).text;
+    });
+
+    test('it is no longer retrieved', async () => {
+      let response = await request(expressApp)
+        .delete(`/api/puzzleAnswer/${answerId}`);
+
+      expect(response.status).toBe(204);
+
+      response = await request(expressApp)
+        .get(`/api/puzzleAnswer/${answerId}`);
+
+      expect(response.status).toEqual(404);
+
+      response = await request(expressApp)
+        .get(`/api/puzzleAnswer/?puzzle=${puzzleId}`);
+
+      expect(response.text).toEqual("[]");
+    });
+
+    test("it should 403 if there is no user", async () => {
+      userHelper.id = undefined;
+      let response = await request(expressApp)
+        .delete(`/api/puzzleAnswer/${answerId}`);
+
+      expect(response.status).toBe(403);
+
+      userHelper.id = originalUser;
+      response = await request(expressApp)
+        .get(`/api/puzzleAnswer/${answerId}`);
+
+      expect(response.status).toEqual(200);
+    })
+
+    test('it should 401 if the answer is not from a puzzle owned by the user', async () => {
+      userHelper.id = "123123";
+      let response = await request(expressApp)
+        .delete(`/api/puzzleAnswer/${answerId}`);
+
+      expect(response.status).toBe(401);
+
+      userHelper.id = originalUser;
+      response = await request(expressApp)
+        .get(`/api/puzzleAnswer/${answerId}`);
+
+      expect(response.status).toEqual(200);
+    });
+
+    test('responds with a 400 when the answer id is not valid', (done) => {
+      request(expressApp)
+        .delete(`/api/puzzleAnswer/abcd`)
+        .expect(400, done);
     });
   });
 });

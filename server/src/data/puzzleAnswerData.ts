@@ -42,6 +42,12 @@ export async function getPuzzleAnswerById(pg: Pool, id: number) : Promise<puzzle
   };
 }
 
+export async function removePuzzleAnswer(pg: Pool, id: number): Promise<boolean> {
+  const result = await pg.query("DELETE from puzzle_answers WHERE id = $1", [id]);
+
+  return result.rows.length > 0;
+}
+
 export async function getAnswersForPuzzle(pg: Pool, puzzleId: number) : Promise<puzzleAnswer[]> {
   const result = await pg.query('SELECT value, answer_index from puzzle_answers WHERE puzzle=$1', [puzzleId]);
 

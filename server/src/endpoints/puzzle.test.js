@@ -112,5 +112,68 @@ describe("puzzle endpoint", () => {
 
       expect(getResponse.status).toBe(401);
     });
+
+    test("getting a puzzle that does not exist responds with a 404", (done) => {
+      request(expressApp)
+        .get(`/api/puzzle/123456`)
+        .expect(404, done);
+    });
+  });
+
+  describe('deleting a puzzle', () => {
+    const puzzleName = "my first puzzle";
+    let puzzleId;
+
+    beforeEach(async () => {
+      puzzleId = (await request(expressApp)
+        .post("/api/puzzle")
+        .set("Content-Type", "application/json")
+        .send(JSON.stringify({name: puzzleName }))).text;
+    });
+
+    test("it is no longer retrieved after being deleted", async () => {
+      const deleteResponse = await request(expressApp)
+        .delete(`/api/puzzle/${puzzleId}`);
+
+      expect(deleteResponse.status).toBe(204);
+
+      const puzzleResponse = await request(expressApp)
+        .get(`/api/puzzle/${puzzleId}`);
+
+      expect(puzzleResponse.status).toBe(404);
+    });
+
+    test('it responds with a 401 when there is not authenticated user', done => {
+      userHelper.id = undefined;
+      request(expressApp)
+        .delete(`/api/puzzle/${puzzleId}`)
+        .expect(401, done);
+    });
+
+    test('it responds with a 400 when the puzzle id is invalid', done => {
+      request(expressApp)
+        .delete('/api/puzzle/abcd')
+        .expect(400, done);
+    });
+
+    test('it responds with a 403 when the authenticated user does not own the puzzle', async () => {
+      userHelper.id = "986554";
+      const deleteResponse = await request(expressApp)
+        .delete(`/api/puzzle/${puzzleId}`);
+
+      expect(deleteResponse.status).toBe(403);
+
+      userHelper.id = userId;
+      const puzzleResponse = await request(expressApp)
+        .get(`/api/puzzle/${puzzleId}`);
+      const data = JSON.parse(puzzleResponse.text);
+
+      expect(data).toEqual({
+        id: +puzzleId,
+        name: puzzleName
+      });
+    });
+
+    // 404?
   });
 });

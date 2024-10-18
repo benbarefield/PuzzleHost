@@ -1,7 +1,12 @@
 import { Request, Response} from "express";
 import {DB_CLIENT} from "../data/sessionStarter";
 import {getPuzzleById, verifyPuzzleOwnership} from "../data/puzzleData";
-import {createPuzzleAnswer, getAnswersForPuzzle, getPuzzleAnswerById} from "../data/puzzleAnswerData";
+import {
+  createPuzzleAnswer,
+  getAnswersForPuzzle,
+  getPuzzleAnswerById,
+  removePuzzleAnswer
+} from "../data/puzzleAnswerData";
 
 async function postPuzzleAnswer(req: Request, res: Response) : Promise<void> {
   const currentUser = req.authenticatedUser;
@@ -58,8 +63,7 @@ async function getPuzzleAnswer(req: Request, res: Response) : Promise<void> {
   if(!puzzleId && puzzleId !== 0) { // support for id = 0?
     const answer = await getPuzzleAnswerById(dataAccess, answerId);
     if(!answer) {
-      // should this actually 404?
-      res.send();
+      res.status(404).send();
       return;
     }
 
@@ -91,6 +95,38 @@ async function getPuzzleAnswer(req: Request, res: Response) : Promise<void> {
   res.send(dataToSend);
 }
 
+async function deletePuzzleAnswer(req: Request, res: Response) : Promise<void> {
+  const dataAccess = req.app.get(DB_CLIENT);
+  const currentUser = req.authenticatedUser;
+  const answerId = +req.params.id;
+
+  if(!currentUser) {
+    res.status(403).send();
+    return;
+  }
+
+  if(isNaN(answerId)) {
+    res.status(400).send();
+    return;
+  }
+
+  const answer = await getPuzzleAnswerById(dataAccess, answerId);
+  if(!answer) {
+    res.status(404).send();
+    return;
+  }
+  const allowed = await verifyPuzzleOwnership(dataAccess, answer.puzzle, currentUser);
+
+  if(!allowed) {
+    res.status(401).send();
+    return;
+  }
+
+  await removePuzzleAnswer(dataAccess, answerId);
+
+  res.status(204).send();
+  return;
+}
 
 export default async function puzzleAnswer(req: Request, res: Response): Promise<void> {
   if(req.method === "OPTIONS") {
@@ -102,6 +138,9 @@ export default async function puzzleAnswer(req: Request, res: Response): Promise
   }
   if(req.method === "GET") {
     return getPuzzleAnswer(req, res);
+  }
+  if(req.method === "DELETE") {
+    return deletePuzzleAnswer(req, res);
   }
 
   res.status(501).send();
