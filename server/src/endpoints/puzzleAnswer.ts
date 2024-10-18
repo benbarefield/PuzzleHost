@@ -11,9 +11,14 @@ async function postPuzzleAnswer(req: Request, res: Response) : Promise<void> {
   }
 
   const dataAccess = req.app.get(DB_CLIENT);
-  const {puzzle, value, answerIndex} = req.body;
+  const {puzzle, value, answerIndex}: {puzzle: number, value: string, answerIndex: number} = req.body;
 
-  const puzzleData = await getPuzzleById(dataAccess, +(puzzle || -1));
+  if(isNaN(puzzle)) {
+    res.status(400).send("Invalid puzzle id");
+    return;
+  }
+
+  const puzzleData = await getPuzzleById(dataAccess, puzzle);
 
   if(!puzzleData) {
     res.status(404).send();
@@ -38,17 +43,20 @@ async function getPuzzleAnswer(req: Request, res: Response) : Promise<void> {
   }
   const dataAccess = req.app.get(DB_CLIENT);
   let puzzleId = +req.query.puzzle;
-  const answerId = req.params.id;
+  const answerId = +req.params.id;
   if((puzzleId || puzzleId === 0) && answerId) {
     res.status(414).send("Unsupported to get a puzzle answer by puzzle id and answer id");
     return;
   }
 
-  // invalid puzzle and answer id?
+  if(isNaN(puzzleId) && isNaN(answerId)) {
+    res.status(400).send("Invalid puzzle Id or answer Id");
+    return;
+  }
 
   let dataToSend: string;
   if(!puzzleId && puzzleId !== 0) { // support for id = 0?
-    const answer = await getPuzzleAnswerById(dataAccess, +answerId);
+    const answer = await getPuzzleAnswerById(dataAccess, answerId);
     if(!answer) {
       // should this actually 404?
       res.send();
@@ -70,7 +78,7 @@ async function getPuzzleAnswer(req: Request, res: Response) : Promise<void> {
   }
 
   if(!dataToSend) {
-    const answers = await getAnswersForPuzzle(dataAccess, +puzzleId);
+    const answers = await getAnswersForPuzzle(dataAccess, puzzleId);
 
     dataToSend = JSON.stringify(answers.map(p => ({
       value: p.value,
@@ -85,7 +93,10 @@ async function getPuzzleAnswer(req: Request, res: Response) : Promise<void> {
 
 
 export default async function puzzleAnswer(req: Request, res: Response): Promise<void> {
-  if(req.method === "OPTIONS") {}
+  if(req.method === "OPTIONS") {
+    res.status(204).send();
+  }
+
   if(req.method === "POST") {
     return postPuzzleAnswer(req, res);
   }

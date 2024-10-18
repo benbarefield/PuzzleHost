@@ -14,6 +14,7 @@ describe('puzzle answer endpoint', () => {
   const userHelper = {id: originalUser};
 
   beforeEach(async () => {
+    userHelper.id = originalUser;
     postgresContainer = await new PostgreSqlContainer().start();
     const connectionUri = postgresContainer.getConnectionUri();
 
@@ -38,6 +39,18 @@ describe('puzzle answer endpoint', () => {
         .merge('/api/puzzleAnswer')
         .expect(501, done);
     });
+
+    test('getting a answer with a bad id is not responds with a 400', (done) => {
+      request(expressApp)
+        .get('/api/puzzleAnswer/asdf')
+        .expect(400, done);
+    });
+
+    test('getting a answer with a bad puzzle id is not responds with a 400', (done) => {
+      request(expressApp)
+        .get('/api/puzzleAnswer/?puzzle=asdf')
+        .expect(400, done);
+    });
   });
 
   describe("creating a puzzle answer", () => {
@@ -49,7 +62,12 @@ describe('puzzle answer endpoint', () => {
 
       const response = await request(expressApp)
         .post('/api/puzzleAnswer')
-        .send(`puzzle=${puzzleId}&value=5&answerIndex=0`);
+        .set("Content-Type", "application/json")
+        .send(JSON.stringify({
+          puzzle: puzzleId,
+          value: "5",
+          answerIndex: 0,
+        }));
 
       expect(response.status).toEqual(201);
     });
@@ -57,7 +75,12 @@ describe('puzzle answer endpoint', () => {
     test('response with 404 when the puzzle does not exist', (done) => {
       request(expressApp)
         .post('/api/puzzleAnswer')
-        .send(`puzzle=545895436&value=5&answerIndex=0`)
+        .set("Content-Type", "application/json")
+        .send(JSON.stringify({
+          puzzle: "545895436",
+          value: "5",
+          answerIndex: 0,
+        }))
         .expect(404, done);
     });
 
@@ -70,19 +93,40 @@ describe('puzzle answer endpoint', () => {
       userHelper.id = "234524";
       const response = await request(expressApp)
         .post('/api/puzzleAnswer')
-        .send(`puzzle=${puzzleId}&value=5&answerIndex=0`);
+        .set("Content-Type", "application/json")
+        .send(JSON.stringify({
+          puzzle: puzzleId,
+          value: "5",
+          answerIndex: 0,
+        }));
 
       expect(response.status).toBe(401);
       // todo: verify nothing is put in db?
     });
 
-    // todo: add 403 to puzzle and userPuzzles
     test('responds with 403 when no user is logged in', (done) => {
       userHelper.id = undefined;
       request(expressApp)
         .post('/api/puzzleAnswer')
-        .send(`puzzle=123123123&value=5&answerIndex=0`)
+        .set("Content-Type", "application/json")
+        .send(JSON.stringify({
+          puzzle: "1235435",
+          value: "5",
+          answerIndex: 0,
+        }))
         .expect(403, done);
+    });
+
+    test('responds with 400 for a bad puzzle id', done => {
+      request(expressApp)
+        .post('/api/puzzleAnswer')
+        .set("Content-Type", "application/json")
+        .send(JSON.stringify({
+          puzzle: "asdb",
+          value: "5",
+          answerIndex: 0,
+        }))
+        .expect(400, done);
     });
   });
 
@@ -97,7 +141,12 @@ describe('puzzle answer endpoint', () => {
       const answerIndex = 3;
       const answerId = (await request(expressApp)
         .post('/api/puzzleAnswer')
-        .send(`puzzle=${puzzleId}&value=${value}&answerIndex=${answerIndex}`)).text;
+        .set("Content-Type", "application/json")
+        .send(JSON.stringify({
+          puzzle: puzzleId,
+          value,
+          answerIndex,
+        }))).text;
 
       const response = await request(expressApp)
         .get(`/api/puzzleAnswer/${answerId}`);
@@ -128,7 +177,12 @@ describe('puzzle answer endpoint', () => {
 
       const answerId = (await request(expressApp)
         .post('/api/puzzleAnswer')
-        .send(`puzzle=${puzzleId}&value=5&answerIndex=0`)).text;
+        .set("Content-Type", "application/json")
+        .send(JSON.stringify({
+          puzzle: puzzleId,
+          value: "5",
+          answerIndex: 0,
+        }))).text;
 
       userHelper.id = "98765";
       const response = await request(expressApp)
@@ -146,6 +200,19 @@ describe('puzzle answer endpoint', () => {
   });
 
   describe('getting the all the answers for a puzzle', () => {
+    test('should be an empty array when there are no answers', async () => {
+      const puzzleId = (await request(expressApp)
+        .post("/api/puzzle")
+        .set("Content-Type", "application/json")
+        .send(JSON.stringify({name: "my first puzzle" }))).text;
+
+      const response = await request(expressApp)
+        .get(`/api/puzzleAnswer/?puzzle=${puzzleId}`);
+
+      const data = JSON.parse(response.text);
+      expect(data).toEqual([]);
+    });
+
     test('all the answers are retrieved', async () => {
       const puzzleId = (await request(expressApp)
         .post("/api/puzzle")
@@ -155,11 +222,21 @@ describe('puzzle answer endpoint', () => {
       const answer1 = "5", answer2 = "10";
       await request(expressApp)
         .post('/api/puzzleAnswer')
-        .send(`puzzle=${puzzleId}&value=${answer1}&answerIndex=0`);
+        .set("Content-Type", "application/json")
+        .send(JSON.stringify({
+          puzzle: puzzleId,
+          value: answer1,
+          answerIndex: 0,
+        }));
 
       await request(expressApp)
         .post('/api/puzzleAnswer')
-        .send(`puzzle=${puzzleId}&value=${answer2}&answerIndex=1`);
+        .set("Content-Type", "application/json")
+        .send(JSON.stringify({
+          puzzle: puzzleId,
+          value: answer2,
+          answerIndex: 1,
+        }));
 
       const response = await request(expressApp)
         .get(`/api/puzzleAnswer/?puzzle=${puzzleId}`);
@@ -192,7 +269,12 @@ describe('puzzle answer endpoint', () => {
 
       const answerId = (await request(expressApp)
         .post('/api/puzzleAnswer')
-        .send(`puzzle=${puzzleId}&value=5&answerIndex=0`)).text;
+        .set("Content-Type", "application/json")
+        .send(JSON.stringify({
+          puzzle: puzzleId,
+          value: "5",
+          answerIndex: 0,
+        }))).text;
 
       const response = await request(expressApp)
         .get(`/api/puzzleAnswer/${answerId}?puzzle=${puzzleId}`);
@@ -211,18 +293,34 @@ describe('puzzle answer endpoint', () => {
       const answer1 = "1", answer2 = "2", answer3 = "3";
       await request(expressApp)
         .post('/api/puzzleAnswer')
-        .send(`puzzle=${puzzleId}&value=${answer1}&answerIndex=0`);
+        .set("Content-Type", "application/json")
+        .send(JSON.stringify({
+          puzzle: puzzleId,
+          value: answer1,
+          answerIndex: 0,
+        }));
 
       await request(expressApp)
         .post('/api/puzzleAnswer')
-        .send(`puzzle=${puzzleId}&value=${answer3}&answerIndex=1`);
+        .set("Content-Type", "application/json")
+        .send(JSON.stringify({
+          puzzle: puzzleId,
+          value: answer3,
+          answerIndex: 1,
+        }));
 
       await request(expressApp)
         .post('/api/puzzleAnswer')
-        .send(`puzzle=${puzzleId}&value=${answer2}&answerIndex=1`);
+        .set("Content-Type", "application/json")
+        .send(JSON.stringify({
+          puzzle: puzzleId,
+          value: answer2,
+          answerIndex: 1,
+        }));
 
       const response = await request(expressApp)
         .get(`/api/puzzleAnswer/?puzzle=${puzzleId}`);
+
       const data = JSON.parse(response.text);
       expect(data.find(a => a.answerIndex === 0).value).toBe(answer1);
       expect(data.find(a => a.answerIndex === 1).value).toBe(answer2);

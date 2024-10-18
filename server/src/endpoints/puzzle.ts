@@ -13,11 +13,27 @@ async function postPuzzle(req: Request, res: Response): Promise<void> {
 
 async function getPuzzle(req: Request, res: Response): Promise<void> {
   const dataAccess = req.app.get(DB_CLIENT);
-  const puzzleId = req.params.id;
+  const puzzleId = Number(req.params.id);
+  const currentUser = req.authenticatedUser;
 
-  const puzzleData = await getPuzzleById(dataAccess, +puzzleId);
+  if(!currentUser) {
+    res.status(401).send();
+    return;
+  }
 
-  res.send(JSON.stringify({name : puzzleData.name}));
+  if(isNaN(puzzleId)) {
+    res.status(400).send("Invalid puzzle id");
+    return;
+  }
+
+  const puzzleData = await getPuzzleById(dataAccess, puzzleId);
+
+  if(puzzleData.owner !== currentUser) {
+    res.status(403).send();
+    return;
+  }
+
+  res.send(JSON.stringify({name : puzzleData.name, id: puzzleId}));
 }
 
 export default async function(req: Request, res: Response) : Promise<void> {

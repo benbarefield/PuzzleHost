@@ -11,6 +11,11 @@ export default async function(req: Request, res: Response) : Promise<void> {
   const dataAccess = req.app.get(DB_CLIENT);
   const userId = req.authenticatedUser;
 
+  if(!userId) {
+    res.status(403).send();
+    return;
+  }
+
   const puzzles = await getPuzzlesForUser(dataAccess, userId);
 
   res.set('Content-Type', 'application/json');

@@ -8,6 +8,7 @@ import {
   puzzleTable as createPuzzleTable
 } from "../../test/pgTableCreationScripts";
 import request from "supertest";
+import {create} from "node:domain";
 
 describe('querying a puzzle', () => {
   jest.setTimeout(60000);
@@ -41,25 +42,51 @@ describe('querying a puzzle', () => {
         .post(`/api/queryPuzzle/123154/123123`)
         .expect(501, done);
     });
+
+    test('responds with 400 for a bad puzzle id', done => {
+      request(expressApp)
+        .get('/api/queryPuzzle/asdf/123123')
+        .expect(400, done);
+    });
   });
+
+  async function createAnswers(puzzleId, value1, value2, value3) {
+    await request(expressApp)
+      .post('/api/puzzleAnswer')
+      .set("Content-Type", "application/json")
+      .send(JSON.stringify({
+        puzzle: puzzleId,
+        value: value1,
+        answerIndex: 0,
+      }))
+    await request(expressApp)
+      .post('/api/puzzleAnswer')
+      .set("Content-Type", "application/json")
+      .send(JSON.stringify({
+        puzzle: puzzleId,
+        value: value3,
+        answerIndex: 1,
+      }));
+    await request(expressApp)
+      .post('/api/puzzleAnswer')
+      .set("Content-Type", "application/json")
+      .send(JSON.stringify({
+        puzzle: puzzleId,
+        value: value2,
+        answerIndex: 1,
+      }));
+  }
 
   describe('when a puzzle exists with answers', () => {
     test('the response is correct when the provided answer is correct', async() => {
+      // todo: I think this should be failing??????
       const puzzleId = (await request(expressApp)
         .post("/api/puzzle")
         .set("Content-Type", "application/json")
         .send(JSON.stringify({name: "my first puzzle" }))).text;
 
       const value1 = "5", value2 = "8", value3 = "10";
-      await request(expressApp)
-        .post('/api/puzzleAnswer')
-        .send(`puzzle=${puzzleId}&value=${value1}&answerIndex=0`);
-      await request(expressApp)
-        .post('/api/puzzleAnswer')
-        .send(`puzzle=${puzzleId}&value=${value3}&answerIndex=2`);
-      await request(expressApp)
-        .post('/api/puzzleAnswer')
-        .send(`puzzle=${puzzleId}&value=${value2}&answerIndex=1`);
+      await createAnswers(puzzleId, value1, value2, value3);
 
       const response = await request(expressApp)
         .get(`/api/queryPuzzle/${puzzleId}/${value1}/${value2}/${value3}`);
@@ -68,22 +95,14 @@ describe('querying a puzzle', () => {
       expect(response.text).toBe("Correct");
     });
 
-    test('the response is incorrect when teh provided answer is not correct', async () => {
+    test('the response is incorrect when the provided answer is not correct', async () => {
       const puzzleId = (await request(expressApp)
         .post("/api/puzzle")
         .set("Content-Type", "application/json")
         .send(JSON.stringify({name: "my first puzzle" }))).text;
 
       const value1 = "5", value2 = "8", value3 = "10";
-      await request(expressApp)
-        .post('/api/puzzleAnswer')
-        .send(`puzzle=${puzzleId}&value=${value1}&answerIndex=0`);
-      await request(expressApp)
-        .post('/api/puzzleAnswer')
-        .send(`puzzle=${puzzleId}&value=${value3}&answerIndex=2`);
-      await request(expressApp)
-        .post('/api/puzzleAnswer')
-        .send(`puzzle=${puzzleId}&value=${value2}&answerIndex=1`);
+      await createAnswers(puzzleId, value1, value2, value3);
 
       const response = await request(expressApp)
         .get(`/api/queryPuzzle/${puzzleId}/${value1}/${value3}/${value2}`);
@@ -99,15 +118,7 @@ describe('querying a puzzle', () => {
         .send(JSON.stringify({name: "my first puzzle" }))).text;
 
       const value1 = "5", value2 = "8", value3 = "10";
-      await request(expressApp)
-        .post('/api/puzzleAnswer')
-        .send(`puzzle=${puzzleId}&value=${value1}&answerIndex=0`);
-      await request(expressApp)
-        .post('/api/puzzleAnswer')
-        .send(`puzzle=${puzzleId}&value=${value3}&answerIndex=2`);
-      await request(expressApp)
-        .post('/api/puzzleAnswer')
-        .send(`puzzle=${puzzleId}&value=${value2}&answerIndex=1`);
+      await createAnswers(puzzleId, value1, value2, value3);
 
       const response = await request(expressApp)
         .get(`/api/queryPuzzle/${puzzleId}/${value1}/${value2}/${value3}/23423`);
@@ -123,15 +134,7 @@ describe('querying a puzzle', () => {
         .send(JSON.stringify({name: "my first puzzle" }))).text;
 
       const value1 = "5", value2 = "8", value3 = "10";
-      await request(expressApp)
-        .post('/api/puzzleAnswer')
-        .send(`puzzle=${puzzleId}&value=${value1}&answerIndex=0`);
-      await request(expressApp)
-        .post('/api/puzzleAnswer')
-        .send(`puzzle=${puzzleId}&value=${value3}&answerIndex=2`);
-      await request(expressApp)
-        .post('/api/puzzleAnswer')
-        .send(`puzzle=${puzzleId}&value=${value2}&answerIndex=1`);
+      await createAnswers(puzzleId, value1, value2, value3);
 
       const response = await request(expressApp)
         .get(`/api/queryPuzzle/${puzzleId}/${value1}/${value3}`);

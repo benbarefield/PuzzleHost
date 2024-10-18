@@ -11,16 +11,17 @@ describe("user puzzles endpoint", () => {
 
   let postgresContainer, pg, expressApp;
   const user1 = "76541258";
-  const userId = {id: user1};
+  const userHelper = {id: user1};
 
   beforeEach(async () => {
+    userHelper.id = user1;
     postgresContainer = await new PostgreSqlContainer().start();
     const connectionUri = postgresContainer.getConnectionUri();
 
     expressApp = express();
 
     pg = await SessionStarter(expressApp, connectionUri);
-    setupServer(expressApp, fakeAuth(userId));
+    setupServer(expressApp, fakeAuth(userHelper));
 
     await pg.query(createPuzzleTable);
   });
@@ -35,6 +36,13 @@ describe("user puzzles endpoint", () => {
       request(expressApp)
         .merge('/api/userPuzzles')
         .expect(501, done);
+    });
+
+    test('should send a 403 when there is no user', (done) => {
+      userHelper.id = undefined;
+      request(expressApp)
+        .get("/api/userPuzzles")
+        .expect(403, done)
     });
   });
 
@@ -71,12 +79,12 @@ describe("user puzzles endpoint", () => {
         .post("/api/puzzle")
         .send(`name=${puzzle1.replace(' ', '+')}`);
 
-      userId.id = "52562345235";
+      userHelper.id = "52562345235";
       await request(expressApp)
         .post("/api/puzzle")
         .send(`name=${puzzle2.replace(' ', '+')}`);
 
-      userId.id = user1;
+      userHelper.id = user1;
       const getResponse = await request(expressApp)
         .get(`/api/userPuzzles`);
 

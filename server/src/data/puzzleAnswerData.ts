@@ -7,7 +7,7 @@ interface puzzleAnswer {
   answerIndex: number
 }
 
-export async function createPuzzleAnswer(pg: Pool, puzzle: string, value: string, answerIndex: number): Promise<number> {
+export async function createPuzzleAnswer(pg: Pool, puzzle: number, value: string, answerIndex: number): Promise<number> {
   const client = await pg.connect();
 
   let newId: number = -1;
