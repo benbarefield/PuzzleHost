@@ -1,6 +1,12 @@
 import {Request, Response} from 'express';
 import {DB_CLIENT} from "../data/sessionStarter";
-import {createPuzzle, getPuzzleById, markPuzzleAsDeleted, verifyPuzzleOwnership} from "../data/puzzleData";
+import {
+  createPuzzle,
+  getPuzzleById,
+  markPuzzleAsDeleted,
+  updatePuzzle,
+  verifyPuzzleOwnership
+} from "../data/puzzleData";
 
 async function postPuzzle(req: Request, res: Response): Promise<void> {
   const dataAccess = req.app.get(DB_CLIENT);
@@ -66,6 +72,39 @@ async function deletePuzzle(req: Request, res: Response): Promise<void> {
   res.status(204).send();
 }
 
+async function putPuzzle(req: Request, res: Response): Promise<void> {
+  const dataAccess = req.app.get(DB_CLIENT);
+  const puzzleId = +req.params.id;
+  const currentUser = req.authenticatedUser;
+  const {name}: {name: string} = req.body;
+
+  if(!currentUser) {
+    res.status(403).send();
+    return;
+  }
+
+  if(isNaN(puzzleId)) {
+    res.status(400).send('Invalid puzzle id');
+    return;
+  }
+
+  const allowed = await verifyPuzzleOwnership(dataAccess, puzzleId, currentUser);
+  if(!allowed) {
+    res.status(401).send();
+    return;
+  }
+
+  let success = false;
+  try {
+    success = await updatePuzzle(dataAccess, puzzleId, name);
+  }
+  catch(e) {
+
+  }
+
+  res.status(204).send();
+}
+
 export default async function(req: Request, res: Response) : Promise<void> {
   if(req.method === "OPTIONS") {
     res.status(204).send();
@@ -79,6 +118,9 @@ export default async function(req: Request, res: Response) : Promise<void> {
   }
   if(req.method === "DELETE") {
     return deletePuzzle(req, res);
+  }
+  if(req.method === "PUT") {
+    return putPuzzle(req, res);
   }
   res.status(501).send();
 }

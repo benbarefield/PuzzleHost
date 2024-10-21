@@ -46,3 +46,9 @@ export async function markPuzzleAsDeleted(pg: Pool, puzzleId: number): Promise<b
 
   return result.rowCount > 0;
 }
+
+export async function updatePuzzle(pg: Pool, puzzleId: number, name: string): Promise<boolean> {
+  const result = await pg.query(`UPDATE puzzles SET name = $1 where id = $2`, [name, puzzleId]);
+
+  return result.rowCount > 0;
+}

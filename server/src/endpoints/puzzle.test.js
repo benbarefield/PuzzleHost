@@ -1,4 +1,4 @@
-import {PostgreSqlContainer } from '@testcontainers/postgresql';
+import {PostgreSqlContainer} from '@testcontainers/postgresql';
 import request from 'supertest';
 import express from "express";
 import SessionStarter from "../data/sessionStarter";
@@ -10,11 +10,11 @@ describe("puzzle endpoint", () => {
   jest.setTimeout(60000);
 
   let postgresContainer, pg, expressApp;
-  const userId = "123344567";
-  const userHelper = {id: userId};
+  const originalUser = "123344567";
+  const userHelper = {id: originalUser};
 
   beforeEach(async () => {
-    userHelper.id = userId;
+    userHelper.id = originalUser;
     postgresContainer = await new PostgreSqlContainer().start();
     const connectionUri = postgresContainer.getConnectionUri();
 
@@ -163,7 +163,7 @@ describe("puzzle endpoint", () => {
 
       expect(deleteResponse.status).toBe(403);
 
-      userHelper.id = userId;
+      userHelper.id = originalUser;
       const puzzleResponse = await request(expressApp)
         .get(`/api/puzzle/${puzzleId}`);
       const data = JSON.parse(puzzleResponse.text);
@@ -175,5 +175,75 @@ describe("puzzle endpoint", () => {
     });
 
     // 404?
+  });
+
+  describe('updating a puzzle', () => {
+    const puzzleName = "my first puzzle";
+    let puzzleId;
+
+    beforeEach(async () => {
+      puzzleId = (await request(expressApp)
+        .post("/api/puzzle")
+        .set("Content-Type", "application/json")
+        .send(JSON.stringify({name: puzzleName }))).text;
+    });
+
+    test('setting the name is persisted', async () => {
+      const newName = "a new name";
+      let response = await request(expressApp)
+        .put(`/api/puzzle/${puzzleId}`)
+        .set("Content-Type", "application/json")
+        .send(JSON.stringify({name: newName}));
+
+      expect(response.status).toBe(204);
+
+      response = await request(expressApp)
+        .get(`/api/puzzle/${puzzleId}`);
+
+      const data = JSON.parse(response.text);
+      expect(data.name).toBe(newName);
+    });
+
+    test('responds with a 403 when no user exists', async () => {
+      userHelper.id = undefined;
+      let response = await request(expressApp)
+        .put(`/api/puzzle/${puzzleId}`)
+        .set("Content-Type", "application/json")
+        .send(JSON.stringify({name: "newName"}));
+
+      expect(response.status).toBe(403);
+
+      userHelper.id = originalUser;
+      response = await request(expressApp)
+        .get(`/api/puzzle/${puzzleId}`);
+
+      const data = JSON.parse(response.text);
+      expect(data.name).toBe(puzzleName);
+    });
+
+    test('responds with a 401 when the user does not own the puzzle', async () => {
+      userHelper.id = "1231231231232132";
+      let response = await request(expressApp)
+        .put(`/api/puzzle/${puzzleId}`)
+        .set("Content-Type", "application/json")
+        .send(JSON.stringify({name: "newName"}));
+
+      expect(response.status).toBe(401);
+
+      userHelper.id = originalUser;
+      response = await request(expressApp)
+        .get(`/api/puzzle/${puzzleId}`);
+
+      const data = JSON.parse(response.text);
+      expect(data.name).toBe(puzzleName);
+    });
+
+    test('response with a 400 when the puzzle id is not valid', done => {
+      request(expressApp)
+        .put(`/api/puzzle/asdfasdf`)
+        .set("Content-Type", "application/json")
+        .send(JSON.stringify({name: "newName"}))
+        .expect(400, done);
+    });
   });
 });
