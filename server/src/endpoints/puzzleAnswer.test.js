@@ -158,6 +158,7 @@ describe('puzzle answer endpoint', () => {
         value,
         answerIndex,
         puzzle: puzzleId,
+        id: +answerId,
       });
     });
 

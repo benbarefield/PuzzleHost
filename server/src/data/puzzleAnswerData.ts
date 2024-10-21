@@ -67,12 +67,10 @@ export async function removePuzzleAnswer(pg: Pool, id: number): Promise<boolean>
 }
 
 export async function getAnswersForPuzzle(pg: Pool, puzzleId: number) : Promise<puzzleAnswer[]> {
-  const result = await pg.query('SELECT value, answer_index from puzzle_answers WHERE puzzle=$1', [puzzleId]);
-
-  // if(!result.rows.length) { return []; }
+  const result = await pg.query('SELECT id, value, answer_index from puzzle_answers WHERE puzzle=$1', [puzzleId]);
 
   return result.rows.map(r => ({
-    id: -1,
+    id: r.id,
     value: r.value,
     answerIndex: r.answer_index,
     puzzle: puzzleId

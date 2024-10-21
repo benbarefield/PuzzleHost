@@ -68,6 +68,7 @@ async function getPuzzleAnswer(req: Request, res: Response) : Promise<void> {
     }
 
     dataToSend = JSON.stringify({
+      id: answer.id,
       value: answer.value,
       puzzle: answer.puzzle,
       answerIndex: answer.answerIndex,
@@ -85,6 +86,7 @@ async function getPuzzleAnswer(req: Request, res: Response) : Promise<void> {
     const answers = await getAnswersForPuzzle(dataAccess, puzzleId);
 
     dataToSend = JSON.stringify(answers.map(p => ({
+      id: p.id,
       value: p.value,
       puzzle: p.puzzle,
       answerIndex: p.answerIndex,
