@@ -594,5 +594,22 @@ describe('puzzle answer endpoint', () => {
       expect(data.find(a => a.answerIndex === 1).value).toBe("100");
       expect(data.find(a => a.answerIndex === 2).value).toBe(newValue);
     });
+
+    test("using same answer index still allows value to change", async () => {
+      const newValue = "a different value";
+      let response = await request(expressApp)
+        .put(`/api/puzzleAnswer/${answerId}`)
+        .set("Content-Type", "application/json")
+        .send(JSON.stringify({value: newValue, answerIndex: 1}));
+
+      expect(response.status).toBe(204);
+
+      response = await request(expressApp)
+        .get(`/api/puzzleAnswer/${answerId}`);
+
+      const data = JSON.parse(response.text);
+      expect(data.value).toBe(newValue);
+      expect(data.answerIndex).toBe(1);
+    });
   });
 });

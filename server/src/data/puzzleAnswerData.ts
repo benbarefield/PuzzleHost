@@ -70,12 +70,13 @@ export async function updatePuzzleAnswer(pg: Pool, id: number, value: string | u
   let updateString = "";
   let updates = [];
   if(value !== undefined) {
-    updateString += " value = $1 ";
     updates.push(value);
+    updateString += ` value = $${updates.length} `;
   }
   if(answerIndex !== undefined) {
-    updateString += " answer_index = $2";
+    if(updates.length) updateString += ",";
     updates.push(answerIndex);
+    updateString += ` answer_index = $${updates.length} `;
   }
 
   if(updates.length === 0) {
@@ -89,7 +90,7 @@ export async function updatePuzzleAnswer(pg: Pool, id: number, value: string | u
   }
 
   const current = await getPuzzleAnswerById(pg, id);
-  if(!current) { return false; } // todo: test? ----- test value updates with answerId, and value updates with same answerId
+  if(!current) { return false; } // todo: test?
   if(current.answerIndex === answerIndex && updates.length === 2) {
     return true;
   }
