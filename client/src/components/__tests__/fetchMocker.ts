@@ -1,6 +1,6 @@
 export interface MockResponseInit {
-  body: BodyInit,
-  options: ResponseInit,
+  body: BodyInit | null,
+  options: ResponseInit | undefined,
 }
 
 export interface FetchMockFunction extends Function {
@@ -93,6 +93,7 @@ export default function doFetchMocking() : FetchMockFunction {
   }
 
   mock.numberOfRequestsTo = function(urlPattern: RegExp): number {
+    for(var i = 0; i < requests.length; ++i) { console.log(requests[i].url)}
     return requests.reduce((s, p) => urlPattern.test(p.url) ? s + 1 : s, 0);
   }
 

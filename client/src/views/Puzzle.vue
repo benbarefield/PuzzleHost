@@ -65,8 +65,14 @@
       return;
     }
 
-    usePuzzleAnswersStore().addAnswerToPuzzle(props.id, answerValue, addAt);
+    const id = await response.text();
+    usePuzzleAnswersStore().addAnswerToPuzzle(props.id, id, answerValue, addAt);
+    newAnswerValueRef.value.value = "";
     newAnswerDialogRef.value?.close?.();
+  }
+
+  function removeAnswer(answerIndex: number) {
+    usePuzzleAnswersStore().removeAnswerFromPuzzle(props.id, answerIndex);
   }
 
   const puzzleExists = hasPuzzleData.value(props.id);
@@ -85,7 +91,6 @@
   }
 
   onUpdated(() => {
-    const {puzzles} = storeToRefs(usePuzzleStore());
     if(hasPuzzleData.value(props.id) && !hasAnswers.value) {
       retrievePuzzleAnswers();
     }
@@ -99,8 +104,8 @@
     <div v-if="!hasAnswers" class="loading" data-test="answers-loading">Loading...</div>
     <ul v-if="hasAnswers" class="answerList">
       <li v-for="(answer, index) in answerListItems">
-        <p v-if="answer !== null" class="answer">{{answer.value}}</p>
-        <button v-if="answer === null" @click="() => openNewAnswerDialog(index / 2)">+</button>
+        <p v-if="answer !== null" class="answer">{{answer.value}}<button class="delete" data-test="delete" @click="() => removeAnswer((index - 1) / 2)">remove</button></p>
+        <button v-if="answer === null" @click="() => openNewAnswerDialog(index / 2)" data-test="add" class="create">+</button>
       </li>
     </ul>
   </section>
@@ -133,7 +138,7 @@
   }
 
   .answer {
-    height: 2em;
+    height: 40px;
     line-height: 2em;
     width: 100%;
     border: 1px solid var(--color-border);
@@ -141,9 +146,34 @@
     padding: 0 4px;
     color: var(--color-text);
     text-align: center;
+    position: relative;
   }
 
-  .answerList button {
+  .delete {
+    height: 16px;
+    width: 16px;
+    color: transparent;
+    background-color: #f60f3b;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 0;
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+  .delete::before {
+    content: "x";
+    color: #fff;
+    font-size: 14px;
+    position: absolute;
+    left: 50%;
+    top: 40%;
+    transform: translate(-50%, -50%);
+  }
+
+  .create {
     display: block;
     height: 0;
     width: 100%;
@@ -159,8 +189,11 @@
     line-height: 1em;
     font-weight: 600;
   }
-  .answerList button:hover {
-    height: 1.5em;
+  .create:hover {
+    height: 40px;
+  }
+  .answerList li:only-child .create {
+    height: 40px;
   }
 
   .newAnswerDialog {

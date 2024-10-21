@@ -15,17 +15,20 @@ describe("Puzzle view", () => {
     {
       puzzle: puzzleData.id,
       value: "b",
-      answerIndex: 0
+      answerIndex: 0,
+      id: "1",
     },
     {
       puzzle: puzzleData.id,
       value: "n",
-      answerIndex: 2
+      answerIndex: 2,
+      id: "2",
     },
     {
       puzzle: puzzleData.id,
       value: "e",
-      answerIndex: 1
+      answerIndex: 1,
+      id: "3",
     },
   ];
 
@@ -82,7 +85,7 @@ describe("Puzzle view", () => {
       const answerElements = wrapper.findAll('.answer');
       expect(answerElements.length).toBe(answers.length);
       for(let i = 0; i < answers.length; ++i) {
-        expect(answerElements[answers[i].answerIndex].text()).toBe(answers[i].value);
+        expect(answerElements[answers[i].answerIndex].text()).toContain(answers[i].value);
       }
     });
 
@@ -151,7 +154,7 @@ describe("Puzzle view", () => {
       await flushPromises();
 
       expect(wrapper.find('[data-test="puzzle-loading"]').exists()).toBe(false);
-      expect(wrapper.find('[data-test="puzzle-name"]').text()).toBe(puzzleData.name);
+      expect(wrapper.find('[data-test="puzzle-name"]').text()).toContain(puzzleData.name);
     });
   });
 
@@ -187,8 +190,82 @@ describe("Puzzle view", () => {
       const answerElements = wrapper.findAll('.answer');
       expect(answerElements.length).toBe(answers.length);
       for(let i = 0; i < answers.length; ++i) {
-        expect(answerElements[answers[i].answerIndex].text()).toBe(answers[i].value);
+        expect(answerElements[answers[i].answerIndex].text()).toContain(answers[i].value);
       }
+    });
+
+    describe('when deleting an answer', () => {
+      it('should be removed from the list and list order updated', async () => {
+        const deletes = wrapper.findAll('button[data-test="delete"]');
+
+        await deletes[1].trigger('click');
+
+        const answerElements = wrapper.findAll('.answer');
+        expect(answerElements.length).toBe(answers.length - 1);
+      });
+
+      it('should update answer indexes properly for deleted elements', async () => {
+        const deletes = wrapper.findAll('button[data-test="delete"]');
+        await deletes[0].trigger('click');
+        fetchMock.resolveFetch(/api\/puzzleAnswer/, { body : null, options: { status: 204 }});
+
+        const adds = wrapper.findAll('button[data-test="add"]');
+        await adds[adds.length-1].trigger('click');
+
+        const newAnswerValue = "abcd";
+        await wrapper.find(".newAnswerDialog input").setValue(newAnswerValue);
+        await wrapper.find(".newAnswerDialog button").trigger('click');
+
+        fetchMock.resolveFetchWithText(/api\/puzzleAnswer/, "9");
+        await flushPromises();
+
+        const answerElements = wrapper.findAll('.answer');
+        expect(answerElements[answerElements.length-1].text()).toContain(newAnswerValue);
+      });
+
+      it('should be added back to the list if the delete fails', async () => {
+        const deletes = wrapper.findAll('button[data-test="delete"]');
+        await deletes[0].trigger('click');
+
+        const requestPattern = new RegExp(`/api/puzzleAnswer/${answers[0].id}$`);
+        expect(fetchMock.numberOfRequestsTo(requestPattern)).toBe(1);
+        expect(fetchMock.getRequest(requestPattern).method).toBe("DELETE");
+
+        fetchMock.resolveFetch(requestPattern, {
+          body: "",
+          options: {
+            status: 500
+          },
+        });
+
+        await flushPromises();
+
+        const answerElements = wrapper.findAll('.answer');
+        expect(answerElements.length).toBe(answers.length);
+        for(let i = 0; i < answers.length; ++i) {
+          expect(answerElements[answers[i].answerIndex].text()).toContain(answers[i].value);
+        }
+      });
+      // and answer indexes are fixed after delete failed
+
+      it('should be possible to remove a recently added answer', async () => {
+        const addButtons = wrapper.findAll('[data-test="add"]');
+        await addButtons[addButtons.length-1].trigger('click');
+
+        const newAnswerValue = "abcd";
+        await wrapper.find(".newAnswerDialog input").setValue(newAnswerValue);
+        await wrapper.find(".newAnswerDialog button").trigger('click');
+
+        const id = "9";
+        fetchMock.resolveFetchWithText(/api\/puzzleAnswer/, id);
+        await flushPromises();
+
+        const deletes = wrapper.findAll('button[data-test="delete"]');
+        await deletes[deletes.length - 1].trigger('click');
+
+        const request = fetchMock.getRequest(new RegExp(`/api/puzzleAnswer/${id}$`));
+        expect(request.method).toBe("DELETE");
+      });
     });
   });
 
@@ -221,7 +298,7 @@ describe("Puzzle view", () => {
     });
 
     it('should be possible to add one to the end of the list', async () => {
-      const addButtons = wrapper.findAll(".answerList button");
+      const addButtons = wrapper.findAll('[data-test="add"]');
 
       const toPress = addButtons[addButtons.length-1];
       await toPress.trigger('click');
@@ -235,11 +312,11 @@ describe("Puzzle view", () => {
 
       const answerElements = wrapper.findAll('.answer');
       expect(answerElements.length).toBe(answers.length + 1);
-      expect(answerElements[answerElements.length-1].text()).toBe(newAnswerValue);
+      expect(answerElements[answerElements.length-1].text()).toContain(newAnswerValue);
     });
 
     it('should be possible to add one at the top of the list', async () => {
-      const addButtons = wrapper.findAll(".answerList button");
+      const addButtons = wrapper.findAll('[data-test="add"]');
 
       const toPress = addButtons[0];
       await toPress.trigger('click');
@@ -253,14 +330,14 @@ describe("Puzzle view", () => {
 
       const answerElements = wrapper.findAll('.answer');
       expect(answerElements.length).toBe(answers.length + 1);
-      expect(answerElements[0].text()).toBe(newAnswerValue);
+      expect(answerElements[0].text()).toContain(newAnswerValue);
       for(let i = 0; i < answers.length; ++i) {
-        expect(answerElements[answers[i].answerIndex+1].text()).toBe(answers[i].value);
+        expect(answerElements[answers[i].answerIndex+1].text()).toContain(answers[i].value);
       }
     });
 
     it('should be possible to add one in the middle of the list', async () => {
-      const addButtons = wrapper.findAll(".answerList button");
+      const addButtons = wrapper.findAll('[data-test="add"]');
 
       const toPress = addButtons[1];
       await toPress.trigger('click');
@@ -275,16 +352,16 @@ describe("Puzzle view", () => {
       const answerElements = wrapper.findAll('.answer');
       expect(answerElements.length).toBe(answers.length + 1);
       const originalFirst = answers.find(a => a.answerIndex === 0) || answers[0];
-      expect(answerElements[0].text()).toBe(originalFirst.value);
-      expect(answerElements[1].text()).toBe(newAnswerValue);
+      expect(answerElements[0].text()).toContain(originalFirst.value);
+      expect(answerElements[1].text()).toContain(newAnswerValue);
       for(let i = 0; i < answers.length; ++i) {
         if(answers[i] === originalFirst) { continue; }
-        expect(answerElements[answers[i].answerIndex+1].text()).toBe(answers[i].value);
+        expect(answerElements[answers[i].answerIndex+1].text()).toContain(answers[i].value);
       }
     });
 
     it("should not add until the successful result from the server", async () => {
-      const addButtons = wrapper.findAll(".answerList button");
+      const addButtons = wrapper.findAll('[data-test="add"]');
 
       const toPress = addButtons[0];
       await toPress.trigger('click');

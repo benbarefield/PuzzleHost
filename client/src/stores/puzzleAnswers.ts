@@ -5,6 +5,7 @@ export interface PuzzleAnswer {
   value: string
   puzzle: string
   answerIndex: number
+  id: string
 }
 
 export const usePuzzleAnswersStore = defineStore("puzzleAnswers", () => {
@@ -21,8 +22,9 @@ export const usePuzzleAnswersStore = defineStore("puzzleAnswers", () => {
     answerStore.value[puzzleId] = answers.map(a => ({...a}));
   }
 
-  const addAnswerToPuzzle = function(puzzleId: string, answerValue: string, index: number): void {
+  const addAnswerToPuzzle = function(puzzleId: string, id: string, answerValue: string, index: number): void {
     let current = answerStore.value[puzzleId];
+    // todo: update id, what if added is deleted before add is completed
     answerStore.value[puzzleId] = Array.from({length: current.length + 1}, (_, i) =>
       i < index
         ? current[i]
@@ -31,6 +33,7 @@ export const usePuzzleAnswersStore = defineStore("puzzleAnswers", () => {
           value: answerValue,
           answerIndex: index,
           puzzle: puzzleId,
+          id,
         }
       : {
         ...current[i - 1],
@@ -38,5 +41,27 @@ export const usePuzzleAnswersStore = defineStore("puzzleAnswers", () => {
       });
   }
 
-  return {answers: answerStore, sortedPuzzleAnswers, setAnswersForPuzzle, addAnswerToPuzzle};
+  const removeAnswerFromPuzzle = async function(puzzleId: string, index: number): Promise<void> {
+    const current = answerStore.value[puzzleId];
+    const deleting = current.find(a => a.answerIndex === index);
+    if(!deleting) {
+      return;
+    }
+    answerStore.value[puzzleId] = Array.from({length: current.length-1}, (_, i) => i < index
+      ? current[i]
+      : {
+        ...current[i + 1],
+        answerIndex: i,
+      });
+
+    const response = await fetch(`http://localhost:8888/api/puzzleAnswer/${deleting.id}`, { method: "DELETE" });
+
+    if(response.ok) {
+      return;
+    }
+
+    answerStore.value[puzzleId] = current;
+  }
+
+  return {answers: answerStore, sortedPuzzleAnswers, setAnswersForPuzzle, addAnswerToPuzzle, removeAnswerFromPuzzle};
 });
