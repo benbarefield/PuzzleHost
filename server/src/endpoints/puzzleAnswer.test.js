@@ -3,8 +3,13 @@ import express from "express";
 import SessionStarter from "../data/sessionStarter";
 import setupServer from "../serverSetup";
 import fakeAuth from "../../test/fakeAuth";
-import {puzzleTable as createPuzzleTable, puzzleAnswerTable as createPuzzleAnswerTable} from "../../test/pgTableCreationScripts";
-import request from "supertest";;
+import {
+  puzzleAnswerTable as createPuzzleAnswerTable,
+  puzzleTable as createPuzzleTable
+} from "../../test/pgTableCreationScripts";
+import request from "supertest";
+
+;
 
 describe('puzzle answer endpoint', () => {
   jest.setTimeout(60000);
@@ -426,6 +431,168 @@ describe('puzzle answer endpoint', () => {
       const data = JSON.parse(response.text);
       expect(data.find(a => a.answerIndex === 0).value).toEqual("10");
       expect(data.find(a => a.answerIndex === 1).value).toEqual("12");
+    });
+  });
+
+  describe('changing an answer', () => {
+    let answerId;
+    let puzzleId;
+    beforeEach(async () => {
+      puzzleId = (await request(expressApp)
+        .post("/api/puzzle")
+        .set("Content-Type", "application/json")
+        .send(JSON.stringify({name: "my first puzzle"}))).text;
+
+      await request(expressApp)
+        .post('/api/puzzleAnswer')
+        .set("Content-Type", "application/json")
+        .send(JSON.stringify({
+          puzzle: puzzleId,
+          value: 0,
+          answerIndex: 0,
+        }));
+
+      answerId = (await request(expressApp)
+        .post('/api/puzzleAnswer')
+        .set("Content-Type", "application/json")
+        .send(JSON.stringify({
+          puzzle: puzzleId,
+          value: 10,
+          answerIndex: 1,
+        }))).text;
+
+      await request(expressApp)
+        .post('/api/puzzleAnswer')
+        .set("Content-Type", "application/json")
+        .send(JSON.stringify({
+          puzzle: puzzleId,
+          value: 100,
+          answerIndex: 2,
+        }));
+    });
+
+    test('an updated value can be retrieved', async () => {
+      const newValue = "a different value";
+      let response = await request(expressApp)
+        .put(`/api/puzzleAnswer/${answerId}`)
+        .set("Content-Type", "application/json")
+        .send(JSON.stringify({value: newValue}));
+
+      expect(response.status).toBe(204);
+
+      response = await request(expressApp)
+        .get(`/api/puzzleAnswer/${answerId}`);
+
+      const data = JSON.parse(response.text);
+      expect(data.value).toBe(newValue);
+      expect(data.answerIndex).toBe(1);
+    });
+
+    test('no user results in a 403', async () => {
+      userHelper.id = undefined;
+      let response = await request(expressApp)
+        .put(`/api/puzzleAnswer/${answerId}`)
+        .set("Content-Type", "application/json")
+        .send(JSON.stringify({value: "a different value"}));
+
+      expect(response.status).toBe(403);
+
+      userHelper.id = originalUser;
+      response = await request(expressApp)
+        .get(`/api/puzzleAnswer/${answerId}`);
+
+      const data = JSON.parse(response.text);
+      expect(data.value).toBe("10");
+    });
+
+    test('a user that does not own the associated puzzle gets a 401', async () => {
+      userHelper.id = "359349586";
+      let response = await request(expressApp)
+        .put(`/api/puzzleAnswer/${answerId}`)
+        .set("Content-Type", "application/json")
+        .send(JSON.stringify({value: "a different value"}));
+
+      expect(response.status).toBe(401);
+
+      userHelper.id = originalUser;
+      response = await request(expressApp)
+        .get(`/api/puzzleAnswer/${answerId}`);
+
+      const data = JSON.parse(response.text);
+      expect(data.value).toBe("10");
+    });
+
+    test('invalid answer id responds with a 400', done => {
+      request(expressApp)
+        .put(`/api/puzzleAnswer/abcdedf`)
+        .set("Content-Type", "application/json")
+        .send(JSON.stringify({value: "a different value"}))
+        .expect(400, done);
+    });
+
+    test("updating the answer index to be bigger results in reducing later answer indexes", async () => {
+      let response = await request(expressApp)
+        .put(`/api/puzzleAnswer/${answerId}`)
+        .set("Content-Type", "application/json")
+        .send(JSON.stringify({answerIndex: 2}));
+
+      expect(response.status).toBe(204);
+
+      response = await request(expressApp)
+        .get(`/api/puzzleAnswer/?puzzle=${puzzleId}`);
+      const data = JSON.parse(response.text);
+      expect(data.find(a => a.answerIndex === 0).value).toBe("0");
+      expect(data.find(a => a.answerIndex === 1).value).toBe("100");
+      expect(data.find(a => a.answerIndex === 2).value).toBe("10");
+    });
+
+    test("updating the answer index to be smaller results in increasing earlier answer indexes", async () => {
+      let response = await request(expressApp)
+        .put(`/api/puzzleAnswer/${answerId}`)
+        .set("Content-Type", "application/json")
+        .send(JSON.stringify({answerIndex: 0}));
+
+      expect(response.status).toBe(204);
+
+      response = await request(expressApp)
+        .get(`/api/puzzleAnswer/?puzzle=${puzzleId}`);
+      const data = JSON.parse(response.text);
+      expect(data.find(a => a.answerIndex === 0).value).toBe("10");
+      expect(data.find(a => a.answerIndex === 1).value).toBe("0");
+      expect(data.find(a => a.answerIndex === 2).value).toBe("100");
+    });
+
+    test('updating the answer index to be the same does not change any indexes', async () => {
+      let response = await request(expressApp)
+        .put(`/api/puzzleAnswer/${answerId}`)
+        .set("Content-Type", "application/json")
+        .send(JSON.stringify({answerIndex: 1}));
+
+      expect(response.status).toBe(204);
+
+      response = await request(expressApp)
+        .get(`/api/puzzleAnswer/?puzzle=${puzzleId}`);
+      const data = JSON.parse(response.text);
+      expect(data.find(a => a.answerIndex === 0).value).toBe("0");
+      expect(data.find(a => a.answerIndex === 1).value).toBe("10");
+      expect(data.find(a => a.answerIndex === 2).value).toBe("100");
+    });
+
+    test("updating both the answer index and value is persisted properly", async () => {
+      const newValue = "hello world";
+      let response = await request(expressApp)
+        .put(`/api/puzzleAnswer/${answerId}`)
+        .set("Content-Type", "application/json")
+        .send(JSON.stringify({answerIndex: 2, value: newValue}));
+
+      expect(response.status).toBe(204);
+
+      response = await request(expressApp)
+        .get(`/api/puzzleAnswer/?puzzle=${puzzleId}`);
+      const data = JSON.parse(response.text);
+      expect(data.find(a => a.answerIndex === 0).value).toBe("0");
+      expect(data.find(a => a.answerIndex === 1).value).toBe("100");
+      expect(data.find(a => a.answerIndex === 2).value).toBe(newValue);
     });
   });
 });

@@ -1,11 +1,12 @@
-import { Request, Response} from "express";
+import {Request, Response} from "express";
 import {DB_CLIENT} from "../data/sessionStarter";
 import {getPuzzleById, verifyPuzzleOwnership} from "../data/puzzleData";
 import {
   createPuzzleAnswer,
   getAnswersForPuzzle,
   getPuzzleAnswerById,
-  removePuzzleAnswer
+  removePuzzleAnswer,
+  updatePuzzleAnswer
 } from "../data/puzzleAnswerData";
 
 async function postPuzzleAnswer(req: Request, res: Response) : Promise<void> {
@@ -130,6 +131,45 @@ async function deletePuzzleAnswer(req: Request, res: Response) : Promise<void> {
   return;
 }
 
+async function putPuzzleAnswer(req: Request, res: Response) : Promise<void> {
+  const dataAccess = req.app.get(DB_CLIENT);
+  const currentUser = req.authenticatedUser;
+  const answerId = +req.params.id;
+  const {value, answerIndex}: {value: string | undefined, answerIndex: number | undefined} = req.body;
+
+  if(!currentUser) {
+    res.status(403).send();
+    return;
+  }
+
+  if(isNaN(answerId)) {
+    res.status(400).send();
+    return;
+  }
+
+  let success = false;
+  try {
+    const answer = await getPuzzleAnswerById(dataAccess, answerId);
+    const allowed = await verifyPuzzleOwnership(dataAccess, answer.puzzle, currentUser);
+    if(!allowed) {
+      res.status(401).send();
+      return;
+    }
+
+    success = await updatePuzzleAnswer(dataAccess, answerId, value, answerIndex);
+  }
+  catch(e) {
+    console.log(e);
+    // todo: log better
+  }
+  if(!success) {
+    res.status(500).send();
+    return;
+  }
+
+  res.status(204).send();
+}
+
 export default async function puzzleAnswer(req: Request, res: Response): Promise<void> {
   if(req.method === "OPTIONS") {
     res.status(204).send();
@@ -143,6 +183,9 @@ export default async function puzzleAnswer(req: Request, res: Response): Promise
   }
   if(req.method === "DELETE") {
     return deletePuzzleAnswer(req, res);
+  }
+  if(req.method === "PUT") {
+    return putPuzzleAnswer(req, res);
   }
 
   res.status(501).send();
