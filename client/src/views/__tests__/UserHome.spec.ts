@@ -2,10 +2,10 @@ import {beforeEach, describe, expect, it, vi} from 'vitest'
 import {flushPromises, mount, VueWrapper} from "@vue/test-utils";
 import {createTestingPinia} from "@pinia/testing";
 import {type Puzzle} from "../../stores/puzzles";
-import UserHome from "@/views/UserHome.vue";
-import {routeConfiguration} from "@/router";
+import UserHome from "../UserHome.vue";
+import {routeConfiguration} from "../../router";
 import {type Router, createRouter, createWebHistory} from "vue-router";
-import doFetchMocking, {type FetchMockFunction} from "./fetchMocker";
+import doFetchMocking, {type FetchMockFunction} from "@/testUtil/fetchMocker";
 
 describe("UserHome view", () => {
   let wrapper: VueWrapper, router: Router, fetchMock: FetchMockFunction;

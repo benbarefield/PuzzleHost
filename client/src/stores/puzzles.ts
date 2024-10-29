@@ -5,6 +5,8 @@ export interface Puzzle {
   name: string;
   readonly id: string;
   unconfirmed?: boolean
+  lastStatus?: boolean,
+  lastStatusUpdate?: number,
 }
 
 // todo: enforce name uniqueness
@@ -15,6 +17,12 @@ export const usePuzzleStore = defineStore("puzzles", () => {
   const puzzleNameById = computed(() => (puzzleId: string): string => {
     const puzzle = puzzlesStore.value.find(p => p.id == puzzleId);
     return puzzle?.name || "";
+  });
+
+
+  const hasPuzzleData = computed(() => (puzzleId: string) => {
+    const puzzle = puzzlesStore.value.find(p => p.id == puzzleId);
+    return puzzle ? !puzzle.unconfirmed : false;
   });
 
   function setPuzzles(puzzles: Puzzle[]) {
@@ -37,10 +45,15 @@ export const usePuzzleStore = defineStore("puzzles", () => {
     });
   }
 
-  const hasPuzzleData = computed(() => (puzzleId: string) => {
-    const puzzle = puzzlesStore.value.find(p => p.id == puzzleId);
-    return puzzle ? !puzzle.unconfirmed : false;
-  });
+  function puzzleQueried(id: string, status: boolean) {
+    puzzlesStore.value = puzzlesStore.value.map(p => p.id !== id
+      ? p
+      : {
+        ...p,
+        lastStatus: status,
+        lastStatusUpdate: Date.now(),
+      });
+  }
 
-  return {puzzles:puzzlesStore, loaded, puzzleNameById, hasPuzzleData, setPuzzles, addPuzzle, confirmPuzzleWithId};
+  return {puzzles:puzzlesStore, loaded, puzzleNameById, hasPuzzleData, setPuzzles, addPuzzle, confirmPuzzleWithId, puzzleQueried};
 });

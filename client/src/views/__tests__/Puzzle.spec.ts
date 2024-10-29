@@ -1,12 +1,12 @@
 import {beforeEach, describe, expect, it, vi} from 'vitest'
 import {flushPromises, mount, VueWrapper} from "@vue/test-utils";
 import {createTestingPinia} from "@pinia/testing";
-import {type Puzzle} from "@/stores/puzzles";
-import {type PuzzleAnswer} from '@/stores/puzzleAnswers'
-import PuzzleView from "@/views/Puzzle.vue"
-import {routeConfiguration} from "@/router";
+import {type Puzzle} from "../../stores/puzzles";
+import {type PuzzleAnswer} from '../../stores/puzzleAnswers'
+import PuzzleView from "../Puzzle.vue"
+import {routeConfiguration} from "../../router";
 import {createRouter, createWebHistory, type Router} from "vue-router";
-import doFetchMocking, {type FetchMockFunction} from "./fetchMocker";
+import doFetchMocking, {type FetchMockFunction} from "@/testUtil/fetchMocker";
 
 describe("Puzzle view", () => {
   let wrapper: VueWrapper, router: Router, fetchMock: FetchMockFunction;
@@ -207,6 +207,7 @@ describe("Puzzle view", () => {
       it('should update answer indexes properly for deleted elements', async () => {
         const deletes = wrapper.findAll('button[data-test="delete"]');
         await deletes[0].trigger('click');
+        // kind of annoying that this needs to happen due to async action in pinia
         fetchMock.resolveFetch(/api\/puzzleAnswer/, { body : null, options: { status: 204 }});
 
         const adds = wrapper.findAll('button[data-test="add"]');
