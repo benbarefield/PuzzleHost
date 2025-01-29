@@ -9,13 +9,13 @@
   const dialogRef = useTemplateRef("create-dialog");
   const nameRef = useTemplateRef("create-name");
   function openCreateDialog(): void {
-    dialogRef.value.showModal();
-    nameRef.value.focus();
+    dialogRef.value?.showModal();
+    nameRef.value?.focus();
   }
 
   async function sendCreatePuzzle() {
-    const name = nameRef.value.value;
-    dialogRef.value.close?.(); // tests not supporting dialog element
+    const name = nameRef.value?.value || "";
+    dialogRef.value?.close?.(); // tests not supporting dialog element
 
     store.addPuzzle({
       name,

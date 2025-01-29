@@ -64,7 +64,9 @@ import {storeToRefs} from "pinia";
 
     const id = await response.text();
     usePuzzleAnswersStore().addAnswerToPuzzle(props.puzzle, id, answerValue, addAt);
-    newAnswerValueRef.value.value = "";
+    if(newAnswerValueRef.value) {
+      newAnswerValueRef.value.value = "";
+    }
     newAnswerDialogRef.value?.close?.();
   }
 
