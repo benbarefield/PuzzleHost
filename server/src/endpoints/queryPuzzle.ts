@@ -1,41 +1,30 @@
 import {Request, Response} from "express";
-import {getAnswersForPuzzle} from "../data/puzzleAnswerData";
 import {DB_CLIENT} from "../data/sessionStarter";
+import {EVENT_EMITTER} from "../index";
+import {PUZZLE_QUERIED_EVENT} from "./puzzleListener";
+import {checkPuzzleGuess} from "../data/puzzleData";
 
 export default async function(req: Request, res: Response): Promise<void> {
   if(req.method !== "GET") {
-    res.status(501).send();
+    res.status(501).send("Not implemented");
     return;
   }
 
   const dataAccess = req.app.get(DB_CLIENT);
-  const puzzleId = +req.params.id;
+  const puzzleId = req.params.id;
 
-  if(isNaN(puzzleId)) {
-    res.status(400).send("Invalid puzzle id");
-    return;
-  }
-
-  const answers = await getAnswersForPuzzle(dataAccess, puzzleId);
-  if(answers.length === 0) {
+  const providedAnswers = req.params[0].split('/');
+  const correct = await checkPuzzleGuess(dataAccess, puzzleId, providedAnswers);
+  if(correct === null) {
     res.status(404).send();
     return;
   }
-  answers.sort((a, b) => a.answerIndex - b.answerIndex);
 
-  const providedAnswers = req.params[0].split('/');
+  req.app.get(EVENT_EMITTER)?.emit(PUZZLE_QUERIED_EVENT, puzzleId, correct);
 
-  if(providedAnswers.length > answers.length) {
-    res.status(414).send("Incorrect");
-    return;
+  if(correct) {
+    res.status(200).send("Correct");
+  } else {
+    res.status(422).send("Incorrect");
   }
-
-  for(let i = 0; i < answers.length; i++) {
-    if(answers[i].value != providedAnswers[i]) {
-      res.status(422).send("Incorrect");
-      return;
-    }
-  }
-
-  res.status(200).send("Correct");
 }

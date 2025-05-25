@@ -52,3 +52,17 @@ export async function updatePuzzle(pg: Pool, puzzleId: number, name: string): Pr
 
   return result.rowCount > 0;
 }
+
+export async function checkPuzzleGuess(pg: Pool, puzzleId: string, guess: string[]) {
+  if(isNaN(+puzzleId)) { return null; }
+
+  const puzzle = await getPuzzleById(pg, +puzzleId);
+  if(!puzzle) { return null; }
+
+  const result = await pg.query("SELECT $1 = (SELECT ARRAY(SELECT value FROM puzzle_answers WHERE puzzle = $2 ORDER BY answer_index ASC)) as answer", [guess, +puzzleId]);
+  const answerCorrect = result.rows[0].answer;
+
+  await pg.query("UPDATE puzzles SET last_guess_date = $1, last_guess_result = $2 WHERE id = $3", [Date.now(), answerCorrect, +puzzleId]);
+
+  return answerCorrect;
+}
